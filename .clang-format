@@ -8,5 +8,5 @@ BreakFunctionDefinitionParameters: false
 AllowAllArgumentsOnNextLine: false
 AllowShortIfStatementsOnASingleLine: Always
 BreakBeforeBraces: Allman
-ReferenceAlignment: Left
 PointerAlignment: Left
+ReferenceAlignment: Pointer

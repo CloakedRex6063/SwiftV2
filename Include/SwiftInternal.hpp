@@ -106,6 +106,14 @@ namespace Swift
         VkImageView ImageView{};
         VkImageLayout CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         VmaAllocation Allocation{};
+        Int2 Extent{};
+    };
+
+    struct Buffer
+    {
+        VkBuffer BaseBuffer{};
+        VmaAllocation Allocation{};
+        VmaAllocationInfo AllocationInfo{};
     };
     
     struct Swapchain
@@ -143,5 +151,15 @@ namespace Swift
         vkb::PhysicalDevice GPU;
         VmaAllocator Allocator{};
         VkSurfaceKHR Surface{};
+    };
+
+    struct SamplerCreateInfo
+    {
+        VkFilter MinFilter = VK_FILTER_LINEAR;
+        VkFilter MagFilter = VK_FILTER_LINEAR;
+        VkSamplerMipmapMode MipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        VkSamplerAddressMode AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode AddressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     };
 }

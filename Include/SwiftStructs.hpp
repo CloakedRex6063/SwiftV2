@@ -34,7 +34,7 @@ namespace Swift
         std::string AppName;
         std::string EngineName;
         DeviceType PreferredDeviceType;
-        Int2 Dimensions;
+        Int2 Extent;
         std::variant<GLFWwindow*> Window;
         bool EnableDebugMessenger = false;
         bool EnableValidationLayer = false;
@@ -55,9 +55,9 @@ namespace Swift
             PreferredDeviceType = preferredDeviceType;
             return *this;
         };
-        auto& SetDimensions(const Int2& dimensions)
+        auto& SetExtent(const Int2& extent)
         {
-            Dimensions = dimensions;
+            Extent = extent;
             return *this;
         }
         auto& SetWindow(GLFWwindow* window)
@@ -84,11 +84,11 @@ namespace Swift
 
     struct DynamicInfo
     {
-        Int2 Dimensions;
+        Int2 Extent;
 
-        auto& SetDimensions(const Int2& dimensions)
+        auto& SetExtent(const Int2& extent)
         {
-            Dimensions = dimensions;
+            Extent = extent;
             return *this;
         }
     };
@@ -113,5 +113,11 @@ namespace Swift
         VkImageUsageFlags Usage{};
         uint32_t MipLevels = 1;
         bool IsCubemap = false;
+    };
+
+    struct BufferCreateInfo
+    {
+        BufferUsage Usage;
+        uint64_t Size;
     };
 } // namespace Swift

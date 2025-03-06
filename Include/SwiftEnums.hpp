@@ -22,7 +22,13 @@ namespace Swift
         ePipelineLayoutCreateFailed,
         ePipelineCreateFailed,
         eShaderCreateFailed,
-        eImageCreateFailed
+        eImageCreateFailed,
+        eSamplerCreateFailed,
+        eBufferCreateFailed,
+        eImageNotFound,
+        eBufferNotFound,
+        eBufferMapFailed,
+        eCopyFailed
     };
 
     enum class DeviceType
@@ -36,6 +42,15 @@ namespace Swift
         eVertex,
         eFragment,
         eCompute
+    };
+
+    enum class BufferUsage
+    {
+        eUniform,
+        eStorage,
+        eIndex,
+        eIndirect,
+        eReadback
     };
 
     enum class CullMode
