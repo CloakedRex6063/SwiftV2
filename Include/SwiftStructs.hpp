@@ -140,4 +140,11 @@ namespace Swift
         BufferUsage Usage;
         uint64_t Size;
     };
+
+    struct BufferCopy
+    {
+        uint64_t SrcOffset;
+        uint64_t DstOffset;
+        uint64_t Size;
+    };
 } // namespace Swift

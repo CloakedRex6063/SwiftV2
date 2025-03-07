@@ -107,8 +107,7 @@ namespace Swift
 
     std::expected<void *, Error> MapBuffer(BufferHandle bufferHandle);
 
-    std::expected<void, Error> CopyToBuffer(BufferHandle bufferHandle, const void *data, uint64_t offset,
-                                            uint64_t size);
+    void CopyBuffer(BufferHandle srcHandle, BufferHandle dstHandle, const std::vector<BufferCopy> &copyRegions);
 
     void UpdateBuffer(BufferHandle bufferHandle, const void *data, uint64_t offset, uint64_t size);
 

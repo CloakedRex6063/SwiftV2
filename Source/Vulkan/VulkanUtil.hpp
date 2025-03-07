@@ -1,4 +1,5 @@
 #pragma once
+#include "span"
 #include "VulkanConstants.hpp"
 #include "array"
 #include "volk.h"
@@ -40,12 +41,11 @@ namespace Swift::Vulkan
     void UpdateDescriptorImage(VkDevice device, VkDescriptorSet descriptor,
                                VkSampler sampler, VkImageView imageView, uint32_t arrayElement);
 
-    std::expected<void, Error> CopyToBuffer(VmaAllocator allocator, VmaAllocation bufferAlloc,
-                                            const void *data,
-                                            uint64_t offset, uint64_t size);
-
     void UpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer buffer, const void *data,
                       uint64_t offset, uint64_t size);
+
+    void CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
+                    std::span<BufferCopy> copyRegions);
 
 #include "VulkanUtil.inl"
 } // namespace Swift::Vulkan

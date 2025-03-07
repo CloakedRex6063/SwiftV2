@@ -608,17 +608,13 @@ std::expected<void *, Error> Swift::MapBuffer(const BufferHandle bufferHandle)
     return Vulkan::MapBuffer(gContext, buffer);
 }
 
-std::expected<void, Error> Swift::CopyToBuffer(const BufferHandle bufferHandle, const void *data, const uint64_t offset,
-                                               const uint64_t size)
+void Swift::CopyBuffer(const BufferHandle srcHandle, const BufferHandle dstHandle, const std::vector<BufferCopy>& copyRegions)
 {
-#ifdef SWIFT_DEBUG
-    if (bufferHandle == InvalidHandle || bufferHandle >= gBuffers.size())
-    {
-        return std::unexpected(Error::eBufferNotFound);
-    }
-#endif
-    const auto &buffer = gBuffers.at(bufferHandle);
-    return Vulkan::CopyToBuffer(gContext.Allocator, buffer.Allocation, data, offset, size);
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    const auto& srcBuffer = gBuffers.at(srcHandle);
+    const auto& dstBuffer = gBuffers.at(dstHandle);
+
+    Vulkan::CopyBuffer(currentFrameData.Command.Buffer, srcBuffer.BaseBuffer, dstBuffer.BaseBuffer, copyRegions);
 }
 
 void Swift::UpdateBuffer(const BufferHandle bufferHandle, const void *data, const uint64_t offset, const uint64_t size)
