@@ -11,7 +11,10 @@
       "name": "default",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/Build/${presetName}"
+      "binaryDir": "${sourceDir}/Build/${presetName}",
+      "cacheVariables": {
+        "SWIFT_EXAMPLES" : "ON"
+      }
     },
     {
       "name": "Debug",

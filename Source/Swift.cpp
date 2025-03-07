@@ -82,7 +82,7 @@ Swift::Init(const InitInfo &info)
     gPipelineLayout = pipelineLayoutResult.value();
 
     const SamplerCreateInfo samplerCreateInfo{};
-    const auto samplerResult = Vulkan::CreateSampler(gContext.Device, samplerCreateInfo);
+    const auto samplerResult = Vulkan::CreateSampler(gContext, samplerCreateInfo);
     if (!samplerResult)
     {
         return std::unexpected(samplerResult.error());
@@ -416,9 +416,20 @@ void Swift::SetTopology(Topology topology)
                               static_cast<VkPrimitiveTopology>(topology));
 }
 
-std::expected<ShaderHandle,
-    Error>
-Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo &createInfo)
+void Swift::Resolve(const ImageHandle srcImageHandle, const ImageHandle resolvedImageHandle)
+{
+    const auto &currentFrameData = gFrameData.at(gCurrentFrame);
+    auto &srcImage = gImages.at(srcImageHandle);
+    auto &resolvedImage = gImages.at(resolvedImageHandle);
+    const auto &extent = VkExtent3D(srcImage.Extent.x, srcImage.Extent.y, 1);
+    Vulkan::TransitionImage(currentFrameData.Command, srcImage, srcImage.CurrentLayout,
+                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    Vulkan::TransitionImage(currentFrameData.Command, resolvedImage, resolvedImage.CurrentLayout,
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    Vulkan::ResolveImage(currentFrameData.Command.Buffer, srcImage.BaseImage, resolvedImage.BaseImage, extent);
+}
+
+std::expected<ShaderHandle, Error> Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo &createInfo)
 {
     const auto vertexShaderResult = Vulkan::CreateShader(gContext.Device,
                                                          createInfo.VertexCode,

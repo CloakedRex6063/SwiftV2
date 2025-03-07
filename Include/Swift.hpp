@@ -88,6 +88,7 @@ namespace Swift
     void SetTopology(Topology topology);
 
     // Transfer Operations
+    void Resolve(ImageHandle srcImageHandle, ImageHandle resolvedImageHandle);
     void BlitImage(ImageHandle srcImageHandle,
                    ImageHandle dstImageHandle,
                    Int2 srcExtent,

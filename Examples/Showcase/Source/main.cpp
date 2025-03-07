@@ -4,6 +4,8 @@
 #include "SwiftStructs.hpp"
 #include "Utility.hpp"
 
+VkSampleCountFlagBits gSamples = VK_SAMPLE_COUNT_1_BIT;
+
 int main()
 {
     glfwInit();
@@ -30,6 +32,7 @@ int main()
         .FragmentCode = std::move(fragmentCode),
         .ColorFormats = {VK_FORMAT_R16G16B16A16_SFLOAT},
         .DepthFormat = VK_FORMAT_D32_SFLOAT,
+        .Samples = gSamples,
     };
 
     const auto shaderResult = Swift::CreateGraphicsShader(shaderCreateInfo);
@@ -42,6 +45,7 @@ int main()
         .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .Samples = gSamples,
         .MipLevels = 1,
         .IsCubemap = false,
     };
@@ -49,27 +53,23 @@ int main()
     const auto imageResult = Swift::CreateImage(imageInfo);
     const auto renderImage = imageResult.value();
 
+    auto resolvedInfo = imageInfo;
+    resolvedInfo.Samples = VK_SAMPLE_COUNT_1_BIT;
+    const auto resolvedImageResult = Swift::CreateImage(resolvedInfo);
+    const auto resolvedImage = resolvedImageResult.value();
+
     Swift::ImageCreateInfo depthImageInfo = {
         .Format = VK_FORMAT_D32_SFLOAT,
         .Extent = VkExtent2D{1280, 720},
         .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        .Samples = gSamples,
         .MipLevels = 1,
         .IsCubemap = false,
     };
     const auto depthImageResult = Swift::CreateImage(depthImageInfo);
     const auto depthImage = depthImageResult.value();
-
-    Swift::BufferCreateInfo bufferCreateInfo = {
-        .Usage = Swift::BufferUsage::eUniform,
-        .Size = sizeof(uint64_t) * 1000,
-    };
-    const auto bufferResult = Swift::CreateBuffer(bufferCreateInfo);
-
-    std::vector<float> box(4, 1);
-    const auto result = Swift::CopyToBuffer(bufferResult.value(), box.data(), 0, sizeof(float) * box.size());
-    assert(result);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -83,13 +83,21 @@ int main()
         {
             Swift::WaitIdle();
             imageInfo.Extent = {uint32_t(width), uint32_t(height)};
-            depthImageInfo.Extent = imageInfo.Extent;
             const auto tempImage = Swift::CreateTempImage(imageInfo);
-            const auto tempDepthImage = Swift::CreateTempImage(depthImageInfo);
             assert(tempImage);
             const auto colorResult = Swift::UpdateImage(renderImage, tempImage.value());
-            const auto depthResult = Swift::UpdateImage(depthImage, tempDepthImage.value());
             assert(colorResult);
+
+            resolvedInfo.Extent = {uint32_t(width), uint32_t(height)};
+            const auto tempResolveImage = Swift::CreateTempImage(resolvedInfo);
+            assert(tempResolveImage);
+            const auto resolveResult = Swift::UpdateImage(resolvedImage, tempResolveImage.value());
+            assert(resolveResult);
+
+            depthImageInfo.Extent = {uint32_t(width), uint32_t(height)};
+            const auto tempDepthImage = Swift::CreateTempImage(depthImageInfo);
+            assert(tempDepthImage);
+            const auto depthResult = Swift::UpdateImage(depthImage, tempDepthImage.value());
             assert(depthResult);
             Swift::ClearTempImages();
         }
@@ -115,7 +123,15 @@ int main()
 
         Swift::EndRendering();
 
-        Swift::BlitToSwapchain(renderImage, {width, height});
+        if (gSamples != VK_SAMPLE_COUNT_1_BIT)
+        {
+            Swift::Resolve(renderImage, resolvedImage);
+            Swift::BlitToSwapchain(resolvedImage, {width, height});
+        }
+        else
+        {
+            Swift::BlitToSwapchain(renderImage, {width, height});
+        }
 
         result = Swift::EndFrame(info);
         if (!result) return -1;

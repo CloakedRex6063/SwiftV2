@@ -660,9 +660,9 @@ CreateGraphicsPipeline(
                 .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
                 .lineWidth = 1.f,
             };
-    constexpr auto multisampleCreateInfo = VkPipelineMultisampleStateCreateInfo{
+    const auto multisampleCreateInfo = VkPipelineMultisampleStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        .rasterizationSamples = createInfo.Samples,
     };
     constexpr auto depthStencilCreateInfo =
             VkPipelineDepthStencilStateCreateInfo{
@@ -789,9 +789,11 @@ CreateShader(const VkDevice device,
     return shader;
 }
 
-inline std::expected<VkSampler, Error> CreateSampler(const VkDevice device, const SamplerCreateInfo &createInfo)
+inline std::expected<VkSampler, Error> CreateSampler(const Context& context, const SamplerCreateInfo &createInfo)
 {
     {
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(context.GPU, &properties);
         const VkSamplerCreateInfo samplerInfo{
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .magFilter = createInfo.MagFilter,
@@ -804,9 +806,11 @@ inline std::expected<VkSampler, Error> CreateSampler(const VkDevice device, cons
             .maxLod = 16,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = false,
+            .anisotropyEnable = true,
+            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
         };
         VkSampler sampler;
-        const auto result = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
+        const auto result = vkCreateSampler(context.Device, &samplerInfo, nullptr, &sampler);
         return CheckResult(result, sampler, Error::eSamplerCreateFailed);
     }
 }
@@ -824,7 +828,7 @@ CreateBaseImage(const Context &context,
         .extent = {createInfo.Extent.width, createInfo.Extent.height, 1},
         .mipLevels = createInfo.MipLevels,
         .arrayLayers = createInfo.IsCubemap ? 6u : 1u,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .samples = createInfo.Samples,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
         .usage = createInfo.Usage,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -878,10 +882,7 @@ CreateImageView(const VkDevice device,
     return CheckResult(result, imageView, Error::eImageCreateFailed);
 }
 
-inline std::expected<Image,
-    Error>
-CreateImage(const Context &context,
-            const ImageCreateInfo &createInfo)
+inline std::expected<Image, Error> CreateImage(const Context &context, const ImageCreateInfo &createInfo)
 {
     Image image;
     const auto imageResult = CreateBaseImage(context, createInfo);

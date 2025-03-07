@@ -104,6 +104,7 @@ namespace Swift
         std::vector<char> FragmentCode;
         std::vector<VkFormat> ColorFormats;
         VkFormat DepthFormat;
+        VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
     };
     
     struct ImageCreateInfo
@@ -111,6 +112,7 @@ namespace Swift
         VkFormat Format{};
         VkExtent2D Extent{};
         VkImageUsageFlags Usage{};
+        VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
         uint32_t MipLevels = 1;
         bool IsCubemap = false;
     };

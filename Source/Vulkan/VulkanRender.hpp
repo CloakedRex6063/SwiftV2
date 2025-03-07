@@ -5,10 +5,10 @@
 namespace Swift::Vulkan
 {
     inline void
-    BeginRendering(const Command& command,
-                   const std::span<VkRenderingAttachmentInfo>& colorAttachments,
-                   VkRenderingAttachmentInfo& depthAttachment,
-                   const Int2& Dimensions)
+    BeginRendering(const Command &command,
+                   const std::span<VkRenderingAttachmentInfo> &colorAttachments,
+                   VkRenderingAttachmentInfo &depthAttachment,
+                   const Int2 &Dimensions)
     {
         const auto extent = VkExtent2D(Dimensions.x, Dimensions.y);
         const VkRect2D renderArea{
@@ -21,22 +21,23 @@ namespace Swift::Vulkan
             .layerCount = 1,
             .viewMask = 0,
             .colorAttachmentCount =
-                static_cast<uint32_t>(colorAttachments.size()),
+            static_cast<uint32_t>(colorAttachments.size()),
             .pColorAttachments = colorAttachments.data(),
             .pDepthAttachment = &depthAttachment,
         };
         vkCmdBeginRendering(command.Buffer, &renderingInfo);
     }
-    inline void EndRendering(const Command& command)
+
+    inline void EndRendering(const Command &command)
     {
         vkCmdEndRendering(command.Buffer);
     }
 
     inline std::expected<uint32_t,
-                         Error>
-    AcquireNextImage(const Context& context,
-                     const Swapchain& swapchain,
-                     const VkSemaphore& semaphore)
+        Error>
+    AcquireNextImage(const Context &context,
+                     const Swapchain &swapchain,
+                     const VkSemaphore &semaphore)
     {
         const VkAcquireNextImageInfoKHR acquireInfo{
             .sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
@@ -47,13 +48,13 @@ namespace Swift::Vulkan
         };
         uint32_t imageIndex = 0;
         const auto result =
-            vkAcquireNextImage2KHR(context.Device, &acquireInfo, &imageIndex);
+                vkAcquireNextImage2KHR(context.Device, &acquireInfo, &imageIndex);
         return CheckResult(result, imageIndex, Error::eAcquireFailed);
     }
 
     inline std::expected<void,
-                         Error>
-    Present(const Swapchain& swapchain,
+        Error>
+    Present(const Swapchain &swapchain,
             const Queue queue,
             VkSemaphore semaphore)
     {
@@ -75,16 +76,16 @@ namespace Swift::Vulkan
     }
 
     inline std::expected<void,
-                         Error>
+        Error>
     WaitFence(const VkDevice device,
               const VkFence fence)
     {
         const auto result =
-            vkWaitForFences(device,
-                            1,
-                            &fence,
-                            VK_TRUE,
-                            std::numeric_limits<uint64_t>::max());
+                vkWaitForFences(device,
+                                1,
+                                &fence,
+                                VK_TRUE,
+                                std::numeric_limits<uint64_t>::max());
         if (result != VK_SUCCESS)
         {
             return std::unexpected(Error::eFailedToWaitFence);
@@ -93,7 +94,7 @@ namespace Swift::Vulkan
     }
 
     inline std::expected<void,
-                         Error>
+        Error>
     ResetFence(const VkDevice device,
                const VkFence fence)
     {
@@ -104,7 +105,7 @@ namespace Swift::Vulkan
         return {};
     }
 
-    inline void BeginCommandBuffer(const Command& command)
+    inline void BeginCommandBuffer(const Command &command)
     {
         constexpr VkCommandBufferBeginInfo beginInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -113,14 +114,14 @@ namespace Swift::Vulkan
         vkBeginCommandBuffer(command.Buffer, &beginInfo);
     }
 
-    inline void EndCommandBuffer(const Command& command)
+    inline void EndCommandBuffer(const Command &command)
     {
         vkEndCommandBuffer(command.Buffer);
     }
 
     inline void SubmitQueue(const Queue queue,
-                            const Command& command,
-                            const SubmitInfo& submitInfo)
+                            const Command &command,
+                            const SubmitInfo &submitInfo)
     {
         VkCommandBufferSubmitInfo commandSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
@@ -151,19 +152,19 @@ namespace Swift::Vulkan
         vkQueueSubmit2(queue.BaseQueue, 1, &queueSubmitInfo, submitInfo.Fence);
     }
 
-    inline Image& GetSwapchainImage(Swapchain& swapchain)
+    inline Image &GetSwapchainImage(Swapchain &swapchain)
     {
         return swapchain.Images.at(swapchain.CurrentImageIndex);
     }
 
-    inline void ClearImage(const Command& command,
-                           const Image& image,
-                           const Float4& color)
+    inline void ClearImage(const Command &command,
+                           const Image &image,
+                           const Float4 &color)
     {
         const auto clearColor =
-            VkClearColorValue({color.x, color.y, color.z, color.w});
+                VkClearColorValue({color.x, color.y, color.z, color.w});
         const auto subresourceRange =
-            Vulkan::GetImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+                Vulkan::GetImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
         vkCmdClearColorImage(command.Buffer,
                              image.BaseImage,
                              VK_IMAGE_LAYOUT_GENERAL,
@@ -173,28 +174,51 @@ namespace Swift::Vulkan
     }
 
     inline std::vector<VkRenderingAttachmentInfo>
-    CreateRenderAttachments(const std::span<Image>& images,
-                            const std::vector<ImageHandle>& imageHandles,
-                            const bool& bDepth = false)
+    CreateRenderAttachments(const std::span<Image> &images,
+                            const std::vector<ImageHandle> &imageHandles,
+                            const bool &bDepth = false)
     {
-
         const VkRenderingAttachmentInfo colorInfo{
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageLayout = bDepth ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-                                  : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .imageLayout = bDepth
+                               ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+                               : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         };
         std::vector colorAttachments(images.size(), colorInfo);
-        for (const auto& [index, imageHandle] :
+        for (const auto &[index, imageHandle]:
              std::views::enumerate(imageHandles))
         {
             if (imageHandle != InvalidHandle)
             {
-                const auto& image = images[imageHandle];
+                const auto &image = images[imageHandle];
                 colorAttachments[index].imageView = image.ImageView;
             }
         }
         return colorAttachments;
     };
+
+    inline void ResolveImage(const VkCommandBuffer commandBuffer, const VkImage srcImage, const VkImage dstImage,
+                             const VkExtent3D extent)
+    {
+        VkImageResolve2 resolveRegion
+        {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2,
+            .srcSubresource = Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+            .dstSubresource = Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+            .extent = extent,
+        };
+        VkResolveImageInfo2 resolveInfo
+        {
+            .sType = VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2,
+            .srcImage = srcImage,
+            .srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .dstImage = dstImage,
+            .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .regionCount = 1,
+            .pRegions = &resolveRegion,
+        };
+        vkCmdResolveImage2(commandBuffer, &resolveInfo);
+    }
 } // namespace Swift::Vulkan
