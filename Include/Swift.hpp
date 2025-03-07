@@ -10,12 +10,14 @@ namespace Swift
 {
     struct BufferCreateInfo;
     struct GraphicsShaderCreateInfo;
+    struct SamplerCreateInfo;
     struct Float2;
     struct Int2;
     using ShaderHandle = uint32_t;
     using ImageHandle = uint32_t;
     using TempImageHandle = uint32_t;
     using BufferHandle = uint32_t;
+    using SamplerHandle = uint32_t;
     struct VulkanRenderAttachment;
     struct Float4;
     struct InitInfo;
@@ -101,15 +103,17 @@ namespace Swift
     std::expected<ShaderHandle, Error> CreateGraphicsShader(const GraphicsShaderCreateInfo &createInfo);
 
     // Image Operations
+    std::expected<ImageHandle, Error> CreateImage(const ImageCreateInfo &createInfo);
+
+    std::expected<TempImageHandle, Error> CreateTempImage(const ImageCreateInfo &createInfo);
+
+    std::expected<SamplerHandle, Error> CreateSampler(const SamplerCreateInfo &createInfo);
+
     std::expected<Int2, Error> GetImageSize(ImageHandle imageHandle);
 
     std::expected<VkImageView, Error> GetImageView(ImageHandle imageHandle);
 
     std::expected<void, Error> UpdateImage(ImageHandle baseImageHandle, TempImageHandle tempImageHandle);
-
-    std::expected<ImageHandle, Error> CreateImage(const ImageCreateInfo &createInfo);
-
-    std::expected<TempImageHandle, Error> CreateTempImage(const ImageCreateInfo &createInfo);
 
     void ClearTempImages();
 

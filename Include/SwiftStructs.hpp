@@ -113,8 +113,19 @@ namespace Swift
         VkExtent2D Extent{};
         VkImageUsageFlags Usage{};
         VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
+        SamplerHandle Sampler = InvalidHandle;
         uint32_t MipLevels = 1;
         bool IsCubemap = false;
+    };
+
+    struct SamplerCreateInfo
+    {
+        VkFilter MinFilter = VK_FILTER_LINEAR;
+        VkFilter MagFilter = VK_FILTER_LINEAR;
+        VkSamplerMipmapMode MipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        VkSamplerAddressMode AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode AddressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     };
 
     struct BufferCreateInfo

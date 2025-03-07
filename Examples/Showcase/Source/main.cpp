@@ -82,19 +82,19 @@ int main()
         if (imageSize.x != width || imageSize.y != height)
         {
             Swift::WaitIdle();
-            imageInfo.Extent = {uint32_t(width), uint32_t(height)};
+            imageInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height),};
             const auto tempImage = Swift::CreateTempImage(imageInfo);
             assert(tempImage);
             const auto colorResult = Swift::UpdateImage(renderImage, tempImage.value());
             assert(colorResult);
 
-            resolvedInfo.Extent = {uint32_t(width), uint32_t(height)};
+            resolvedInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
             const auto tempResolveImage = Swift::CreateTempImage(resolvedInfo);
             assert(tempResolveImage);
             const auto resolveResult = Swift::UpdateImage(resolvedImage, tempResolveImage.value());
             assert(resolveResult);
 
-            depthImageInfo.Extent = {uint32_t(width), uint32_t(height)};
+            depthImageInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
             const auto tempDepthImage = Swift::CreateTempImage(depthImageInfo);
             assert(tempDepthImage);
             const auto depthResult = Swift::UpdateImage(depthImage, tempDepthImage.value());
@@ -127,8 +127,7 @@ int main()
         {
             Swift::Resolve(renderImage, resolvedImage);
             Swift::BlitToSwapchain(resolvedImage, {width, height});
-        }
-        else
+        } else
         {
             Swift::BlitToSwapchain(renderImage, {width, height});
         }

@@ -900,6 +900,7 @@ inline std::expected<Image, Error> CreateImage(const Context &context, const Ima
     }
     image.ImageView = imageViewResult.value();
     image.Extent = Int2(createInfo.Extent.width, createInfo.Extent.height);
+    image.Sampler = createInfo.Sampler;
     return image;
 }
 

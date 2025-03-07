@@ -603,11 +603,22 @@ std::expected<ImageHandle, Error> Swift::CreateImage(const ImageCreateInfo &crea
     }
     gImages.emplace_back(result.value());
     const uint32_t arrayElement = gImages.size() - 1;
-    Vulkan::UpdateDescriptorSampler(gContext.Device, gDescriptor.Set, gSamplers[0], gImages.back().ImageView,
+
+    VkSampler sampler;
+    if (createInfo.Sampler == InvalidHandle)
+    {
+        sampler = gSamplers[0];
+    }
+    else
+    {
+        sampler = gSamplers.at(createInfo.Sampler);
+    }
+
+    Vulkan::UpdateDescriptorSampler(gContext.Device, gDescriptor.Set, sampler, gImages.back().ImageView,
                                     arrayElement);
     if (createInfo.Usage & VK_IMAGE_USAGE_STORAGE_BIT)
     {
-        Vulkan::UpdateDescriptorImage(gContext.Device, gDescriptor.Set, gSamplers[0], gImages.back().ImageView,
+        Vulkan::UpdateDescriptorImage(gContext.Device, gDescriptor.Set, sampler, gImages.back().ImageView,
                                       arrayElement);
     }
     return arrayElement;
@@ -622,6 +633,17 @@ std::expected<TempImageHandle, Error> Swift::CreateTempImage(const ImageCreateIn
     }
     gTempImages.emplace_back(result.value());
     return static_cast<uint32_t>(gTempImages.size() - 1);
+}
+
+std::expected<SamplerHandle, Error> Swift::CreateSampler(const SamplerCreateInfo &createInfo)
+{
+    const auto samplerResult = Vulkan::CreateSampler(gContext, createInfo);
+    if (!samplerResult)
+    {
+        return std::unexpected(samplerResult.error());
+    }
+    gSamplers.emplace_back(samplerResult.value());
+    return static_cast<uint32_t>(gSamplers.size() - 1);
 }
 
 void Swift::ClearTempImages()
@@ -645,10 +667,21 @@ std::expected<void, Error> Swift::UpdateImage(const ImageHandle baseImageHandle,
     Vulkan::DestroyImage(gContext, baseImage);
     const auto &tempImage = gTempImages.at(tempImageHandle);
     baseImage = tempImage;
+
+    VkSampler sampler;
+    if (baseImage.Sampler == InvalidHandle)
+    {
+        sampler = gSamplers[0];
+    }
+    else
+    {
+        sampler = gSamplers.at(baseImage.Sampler);
+    }
+
     Vulkan::UpdateDescriptorSampler(
         gContext.Device,
         gDescriptor.Set,
-        gSamplers[0],
+        sampler,
         baseImage.ImageView,
         baseImageHandle);
     return {};
