@@ -1,10 +1,10 @@
 #pragma once
-#include "SwiftEnums.hpp"
-#include "VkBootstrap.h"
-#include "string"
 #include "variant"
-#include "vector"
+#include "SwiftEnums.hpp"
+#define VK_NO_PROTOTYPES
+#include "VkBootstrap.h"
 #include "vk_mem_alloc.h"
+
 
 struct GLFWwindow;
 namespace Swift
@@ -95,6 +95,8 @@ namespace Swift
 
     using ShaderHandle = uint32_t;
     using ImageHandle = uint32_t;
+    using TempImageHandle = uint32_t;
+    using SamplerHandle = uint32_t;
     using BufferHandle = uint32_t;
     inline uint32_t InvalidHandle = std::numeric_limits<uint32_t>::max();
 
@@ -105,6 +107,11 @@ namespace Swift
         std::vector<VkFormat> ColorFormats;
         VkFormat DepthFormat;
         VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
+    };
+
+    struct ComputeShaderCreateInfo
+    {
+        std::vector<char> ComputeCode;
     };
     
     struct ImageCreateInfo

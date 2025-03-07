@@ -12,7 +12,10 @@ namespace
 {
     Context gContext;
     Swapchain gSwapchain;
+
     std::array<FrameData, 3> gFrameData;
+    uint32_t gCurrentFrame = 0;
+
     Queue gGraphicsQueue;
     VkPipelineLayout gPipelineLayout;
     Descriptor gDescriptor;
@@ -25,8 +28,6 @@ namespace
     std::vector<VkSampler> gSamplers;
     VkViewport gViewport;
     VkRect2D gScissor;
-
-    uint32_t gCurrentFrame = 0;
 } // namespace
 
 std::expected<void,
@@ -272,9 +273,16 @@ void Swift::BindShader(const ShaderHandle &shaderHandle)
 {
     const auto &currentFrameData = gFrameData.at(gCurrentFrame);
     const auto &shader = gShaders.at(shaderHandle);
+    gCurrentShader = shaderHandle;
     vkCmdBindPipeline(currentFrameData.Command.Buffer,
                       shader.BindPoint,
                       shader.Pipeline);
+}
+
+void Swift::DispatchCompute(const uint32_t groupX, const uint32_t groupY, const uint32_t groupZ)
+{
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    vkCmdDispatch(currentFrameData.Command.Buffer, groupX, groupY, groupZ);
 }
 
 void Swift::Draw(const uint32_t vertexCount,
@@ -490,6 +498,32 @@ std::expected<ShaderHandle, Error> Swift::CreateGraphicsShader(const GraphicsSha
     return shaderHandle;
 }
 
+std::expected<ShaderHandle, Error> Swift::CreateComputeShader(const ComputeShaderCreateInfo &createInfo)
+{
+    const auto computeShaderResult = Vulkan::CreateShader(gContext.Device,
+                                                          createInfo.ComputeCode,
+                                                          ShaderStage::eCompute);
+    if (!computeShaderResult)
+    {
+        return std::unexpected(computeShaderResult.error());
+    }
+    const auto [computeShaderModule, computeShaderStage] = computeShaderResult.value();
+    const auto computePipelineResult = Vulkan::CreateComputePipeline(gContext.Device, gPipelineLayout,
+                                                                     computeShaderStage);
+    if (!computePipelineResult)
+    {
+        return std::unexpected(computePipelineResult.error());
+    }
+
+    vkDestroyShaderModule(gContext.Device, computeShaderModule, nullptr);
+    const uint32_t shaderHandle = gShaders.size();
+    gShaders.emplace_back(Shader{
+        computePipelineResult.value(),
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+    });
+    return shaderHandle;
+}
+
 void Swift::BlitImage(const ImageHandle srcImageHandle, const ImageHandle dstImageHandle, const Int2 srcExtent,
                       const Int2 dstExtent)
 {
@@ -608,8 +642,7 @@ std::expected<ImageHandle, Error> Swift::CreateImage(const ImageCreateInfo &crea
     if (createInfo.Sampler == InvalidHandle)
     {
         sampler = gSamplers[0];
-    }
-    else
+    } else
     {
         sampler = gSamplers.at(createInfo.Sampler);
     }
@@ -672,8 +705,7 @@ std::expected<void, Error> Swift::UpdateImage(const ImageHandle baseImageHandle,
     if (baseImage.Sampler == InvalidHandle)
     {
         sampler = gSamplers[0];
-    }
-    else
+    } else
     {
         sampler = gSamplers.at(baseImage.Sampler);
     }

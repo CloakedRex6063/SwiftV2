@@ -39,6 +39,15 @@ int main()
     if (!shaderResult) return -1;
     const auto shader = shaderResult.value();
 
+    auto computeCode = Utility::ReadBinaryFile("Shaders/shader.comp.spv");
+    Swift::ComputeShaderCreateInfo computeShaderCreateInfo{
+        .ComputeCode = std::move(computeCode),
+    };
+
+    const auto computeShaderResult = Swift::CreateComputeShader(computeShaderCreateInfo);
+    if (!computeShaderResult) return -1;
+    const auto computeShader = computeShaderResult.value();
+
     Swift::ImageCreateInfo imageInfo = {
         .Format = VK_FORMAT_R16G16B16A16_SFLOAT,
         .Extent = VkExtent2D{1280, 720},
@@ -106,6 +115,9 @@ int main()
         if (!result) return -1;
 
         Swift::ClearImage(renderImage, Swift::Float4{0.2, 0.3, 0.4, 0.4});
+
+        Swift::BindShader(computeShader);
+        Swift::DispatchCompute(1, 1, 1);
 
         Swift::BindShader(shader);
 

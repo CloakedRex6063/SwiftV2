@@ -69,13 +69,17 @@ namespace Swift::Vulkan
                                                             shaderStages,
                                                             const GraphicsShaderCreateInfo &createInfo);
 
+    std::expected<VkPipeline, Error> CreateComputePipeline(VkDevice device,
+                                                           VkPipelineLayout pipelineLayout,
+                                                           const VkPipelineShaderStageCreateInfo &shaderStage);
+
     std::expected<VkShaderModule, Error> CreateShaderModule(VkDevice device, const std::vector<char> &code);
 
     std::expected<ShaderInfo, Error> CreateShader(VkDevice device,
                                                   const std::vector<char> &code,
                                                   ShaderStage shaderStage);
 
-    std::expected<VkSampler, Error> CreateSampler(const Context& context, const SamplerCreateInfo &createInfo);
+    std::expected<VkSampler, Error> CreateSampler(const Context &context, const SamplerCreateInfo &createInfo);
 
     std::expected<std::tuple<VkImage, VmaAllocation>, Error> CreateBaseImage(const Swift::Context &context,
                                                                              const ImageCreateInfo &createInfo);

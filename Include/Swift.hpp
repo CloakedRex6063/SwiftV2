@@ -1,29 +1,11 @@
 #pragma once
+#include "SwiftStructs.hpp"
 #include "SwiftEnums.hpp"
 #include "expected"
 #include "vector"
 
-#define VK_NO_PROTOTYPES
-#include "vulkan/vulkan_core.h"
-
 namespace Swift
 {
-    struct BufferCreateInfo;
-    struct GraphicsShaderCreateInfo;
-    struct SamplerCreateInfo;
-    struct Float2;
-    struct Int2;
-    using ShaderHandle = uint32_t;
-    using ImageHandle = uint32_t;
-    using TempImageHandle = uint32_t;
-    using BufferHandle = uint32_t;
-    using SamplerHandle = uint32_t;
-    struct VulkanRenderAttachment;
-    struct Float4;
-    struct InitInfo;
-    struct DynamicInfo;
-    struct ImageCreateInfo;
-
     std::expected<void,
         Error>
     Init(const InitInfo &info);
@@ -42,6 +24,8 @@ namespace Swift
     void EndRendering();
 
     void BindShader(const ShaderHandle &shaderHandle);
+
+    void DispatchCompute(uint32_t groupX, uint32_t groupY, uint32_t groupZ);
 
     void Draw(uint32_t vertexCount,
               uint32_t instanceCount,
@@ -101,6 +85,7 @@ namespace Swift
 
     // Shader Operations
     std::expected<ShaderHandle, Error> CreateGraphicsShader(const GraphicsShaderCreateInfo &createInfo);
+    std::expected<ShaderHandle, Error> CreateComputeShader(const ComputeShaderCreateInfo &createInfo);
 
     // Image Operations
     std::expected<ImageHandle, Error> CreateImage(const ImageCreateInfo &createInfo);

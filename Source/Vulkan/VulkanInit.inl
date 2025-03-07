@@ -735,6 +735,20 @@ CreateGraphicsPipeline(
     return CheckResult(result, pipeline, Error::ePipelineCreateFailed);
 }
 
+inline std::expected<VkPipeline, Error> CreateComputePipeline(const VkDevice device,
+                                                              const VkPipelineLayout pipelineLayout,
+                                                              const VkPipelineShaderStageCreateInfo &shaderStage)
+{
+    const VkComputePipelineCreateInfo computePipelineCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .stage = shaderStage,
+        .layout = pipelineLayout,
+    };
+    VkPipeline pipeline;
+    const auto result = vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &pipeline);
+    return CheckResult(result, pipeline, Error::ePipelineCreateFailed);
+}
+
 inline std::expected<VkShaderModule,
     Error>
 CreateShaderModule(const VkDevice device,
@@ -789,7 +803,7 @@ CreateShader(const VkDevice device,
     return shader;
 }
 
-inline std::expected<VkSampler, Error> CreateSampler(const Context& context, const SamplerCreateInfo &createInfo)
+inline std::expected<VkSampler, Error> CreateSampler(const Context &context, const SamplerCreateInfo &createInfo)
 {
     {
         VkPhysicalDeviceProperties properties;
@@ -913,7 +927,8 @@ inline void DestroyImage(const Swift::Context &context, const Image &image)
 inline std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &context,
                                                         const BufferCreateInfo &createInfo)
 {
-    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     switch (createInfo.Usage)
     {
         case BufferUsage::eUniform:
@@ -939,7 +954,7 @@ inline std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &co
     };
     constexpr VmaAllocationCreateInfo allocCreateInfo{
         .flags =
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -950,9 +965,9 @@ inline std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &co
     return CheckResult(result, buffer, Error::eBufferCreateFailed);
 }
 
-inline std::expected<void *, Error> MapBuffer(const Swift::Context &context, const Swift::Buffer& buffer)
+inline std::expected<void *, Error> MapBuffer(const Swift::Context &context, const Swift::Buffer &buffer)
 {
-    void* data;
+    void *data;
     const auto result = vmaMapMemory(context.Allocator, buffer.Allocation, &data);
     return CheckResult(result, data, Error::eBufferMapFailed);
 }
