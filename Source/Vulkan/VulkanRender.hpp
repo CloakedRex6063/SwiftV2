@@ -6,8 +6,8 @@ namespace Swift::Vulkan
 {
     inline void
     BeginRendering(const Command &command,
-                   const std::span<VkRenderingAttachmentInfo> &colorAttachments,
-                   VkRenderingAttachmentInfo &depthAttachment,
+                   const std::vector<VkRenderingAttachmentInfo> &colorAttachments,
+                   const VkRenderingAttachmentInfo &depthAttachment,
                    const Int2 &Dimensions)
     {
         const auto extent = VkExtent2D(Dimensions.x, Dimensions.y);

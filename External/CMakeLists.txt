@@ -27,13 +27,37 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Volk)
 target_link_libraries(Swift PRIVATE volk::volk)
 
-FetchContent_Declare(
-        GLFW
-        GIT_REPOSITORY https://github.com/glfw/glfw
-        GIT_TAG e7ea71b
-)
-FetchContent_MakeAvailable(GLFW)
-target_link_libraries(Swift PRIVATE glfw)
+if(SWIFT_GLFW)
+    FetchContent_Declare(
+            GLFW
+            GIT_REPOSITORY https://github.com/glfw/glfw
+            GIT_TAG e7ea71b
+    )
+    FetchContent_MakeAvailable(GLFW)
+    target_link_libraries(Swift PRIVATE glfw)
+endif ()
+
+if(SWIFT_IMGUI)
+    FetchContent_Declare(
+            imgui
+            GIT_REPOSITORY https://github.com/ocornut/imgui
+            GIT_TAG v1.91.7-docking
+    )
+    FetchContent_MakeAvailable(imgui)
+
+    find_package(Vulkan REQUIRED)
+    FILE(GLOB ImGuiSources ${imgui_SOURCE_DIR}/*.cpp)
+    add_library(imgui ${ImGuiSources})
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+    target_link_libraries(imgui PRIVATE Vulkan::Vulkan volk::volk)
+    target_sources(imgui PRIVATE ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)
+    target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+    if(SWIFT_GLFW)
+        target_sources(imgui PRIVATE ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp)
+        target_link_libraries(imgui PRIVATE glfw)
+    endif ()
+    target_link_libraries(Swift PRIVATE imgui)
+endif ()
 
 FetchContent_Declare(
         VMA

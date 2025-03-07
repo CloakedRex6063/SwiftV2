@@ -3,6 +3,7 @@
 #include "Swift.hpp"
 #include "SwiftStructs.hpp"
 #include "Utility.hpp"
+#include "imgui.h"
 
 VkSampleCountFlagBits gSamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -134,6 +135,8 @@ int main()
         Swift::Draw(3, 1, 0, 0);
 
         Swift::EndRendering();
+
+        ImGui::ShowDemoWindow();
 
         if (gSamples != VK_SAMPLE_COUNT_1_BIT)
         {

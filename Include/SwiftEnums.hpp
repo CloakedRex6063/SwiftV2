@@ -15,6 +15,7 @@ namespace Swift
         eCommandPoolCreateFailed,
         eCommandBufferCreateFailed,
         eDescriptorCreateFailed,
+        eFailedToInitImGUI,
         eAcquireFailed,
         ePresentFailed,
         eFailedToWaitFence,

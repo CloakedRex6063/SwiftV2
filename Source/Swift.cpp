@@ -90,12 +90,28 @@ Swift::Init(const InitInfo &info)
     }
     gSamplers.emplace_back(samplerResult.value());
 
+#ifdef SWIFT_IMGUI
+    const auto imguiResult = Vulkan::CreateImGUI(gContext, gGraphicsQueue, info);
+    if (!imguiResult)
+    {
+        return std::unexpected(imguiResult.error());
+    }
+#endif
+
     return {};
 }
 
 void Swift::Shutdown()
 {
     vkDeviceWaitIdle(gContext.Device);
+
+#ifdef SWIFT_IMGUI
+    ImGui_ImplVulkan_Shutdown();
+#ifdef SWIFT_GLFW
+    ImGui_ImplGlfw_Shutdown();
+#endif
+    ImGui::DestroyContext();
+#endif
 
     for (const auto &sampler: gSamplers)
     {
@@ -146,15 +162,25 @@ void Swift::Shutdown()
     vkb::destroy_instance(gContext.Instance);
 }
 
-std::expected<void,
-    Error>
-Swift::BeginFrame(const DynamicInfo &info)
+std::expected<void, Error> Swift::BeginFrame(const DynamicInfo &info)
 {
     const auto &currentFrameData = gFrameData.at(gCurrentFrame);
     auto result = Vulkan::WaitFence(gContext.Device, currentFrameData.Fence);
     if (!result)
     {
         return std::unexpected(result.error());
+    }
+
+    if (info.Extent != gSwapchain.Dimensions)
+    {
+        const auto swapchainResult = Vulkan::RecreateSwapchain(gContext,
+                                                       gGraphicsQueue,
+                                                       gSwapchain,
+                                                       info.Extent);
+        if (!swapchainResult)
+        {
+            return std::unexpected(swapchainResult.error());
+        }
     }
 
     const auto acquireResult =
@@ -178,11 +204,14 @@ Swift::BeginFrame(const DynamicInfo &info)
         {
             return std::unexpected(swapchainResult.error());
         }
-        return std::unexpected(acquireResult.error());
     }
     gSwapchain.CurrentImageIndex = acquireResult.value();
 
     Vulkan::BeginCommandBuffer(currentFrameData.Command);
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
     return {};
 }
 
@@ -191,13 +220,44 @@ std::expected<void,
 Swift::EndFrame(const DynamicInfo &info)
 {
     const auto &[Command, ImageAvailable, RenderFinished, Fence] = gFrameData.at(gCurrentFrame);
+
     auto &image = Vulkan::GetSwapchainImage(gSwapchain);
+     Vulkan::TransitionImage(Command,
+                             image,
+                             image.CurrentLayout,
+                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                             VK_IMAGE_ASPECT_COLOR_BIT);
+
+     const VkRenderingAttachmentInfo colorInfo{
+         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+         .imageView = image.ImageView,
+         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+     };
+
+     const VkRenderingAttachmentInfo depthInfo{
+         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+         .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+     };
+
+     Vulkan::BeginRendering(Command, {colorInfo}, depthInfo, info.Extent);
+     ImGui::Render();
+     ImGui_ImplVulkan_RenderDrawData(
+         ImGui::GetDrawData(),
+         Command.Buffer);
+
+    Vulkan::EndRendering(Command);
+
+    ImGui::EndFrame();
+
     Vulkan::TransitionImage(Command,
                             image,
                             image.CurrentLayout,
                             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                             VK_IMAGE_ASPECT_COLOR_BIT);
-
     Vulkan::EndCommandBuffer(Command);
 
     const SubmitInfo submitInfo{
