@@ -324,7 +324,7 @@ CreateSwapchain(const Context& context,
         presentMode = VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    constexpr uint32_t imageCount = 3;
+    constexpr uint32_t imageCount = 2;
     const VkSwapchainCreateInfoKHR swapchainInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = context.Surface,
