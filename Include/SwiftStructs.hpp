@@ -117,12 +117,12 @@ namespace Swift
     struct ImageCreateInfo
     {
         VkFormat Format{};
-        VkExtent2D Extent{};
+        Int2 Extent{};
         VkImageUsageFlags Usage{};
         VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
         SamplerHandle Sampler = InvalidHandle;
         uint32_t MipLevels = 1;
-        bool IsCubemap = false;
+        uint32_t ArrayLayers = 1;
     };
 
     struct SamplerCreateInfo
@@ -146,5 +146,13 @@ namespace Swift
         uint64_t SrcOffset;
         uint64_t DstOffset;
         uint64_t Size;
+    };
+
+    struct BufferImageCopy
+    {
+        uint64_t BufferOffset;
+        uint32_t MipLevel;
+        uint32_t ArrayLayer;
+        Int2 Extent;
     };
 } // namespace Swift

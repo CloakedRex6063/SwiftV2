@@ -142,11 +142,11 @@ namespace Swift::Vulkan
         };
         const VkSubmitInfo2 queueSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .waitSemaphoreInfoCount = 1,
+            .waitSemaphoreInfoCount = waitInfo.semaphore ? 1u : 0u,
             .pWaitSemaphoreInfos = &waitInfo,
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandSubmitInfo,
-            .signalSemaphoreInfoCount = 1,
+            .signalSemaphoreInfoCount = signalInfo.semaphore ? 1u : 0u,
             .pSignalSemaphoreInfos = &signalInfo,
         };
         vkQueueSubmit2(queue.BaseQueue, 1, &queueSubmitInfo, submitInfo.Fence);

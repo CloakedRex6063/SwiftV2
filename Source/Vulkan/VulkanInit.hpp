@@ -23,14 +23,14 @@ namespace Swift::Vulkan
 {
     vkb::Result<vkb::PhysicalDevice> CreateSelector(vkb::Instance instance,
                                                     VkSurfaceKHR surface,
-                                                    vkb::PreferredDeviceType preferredDeviceType);
+                                                    DeviceType preferredDeviceType);
 
     vkb::Result<vkb::Instance> CreateInstance(const InitInfo &info);
 
     std::expected<Context, Error> CreateContext(const InitInfo &info);
 
 #ifdef SWIFT_IMGUI
-    std::expected<void, Error> CreateImGUI(const Swift::Context &context, const Queue graphicsQueue, const InitInfo &info);
+    std::expected<void, Error> CreateImGUI(const Context &context, const Queue graphicsQueue, const InitInfo &info);
 #endif
 
     std::expected<Queue, Error> CreateQueue(const Context &context, vkb::QueueType queueType);
@@ -56,7 +56,7 @@ namespace Swift::Vulkan
 
     std::expected<VkCommandBuffer, Error> CreateCommandBuffer(VkDevice device, VkCommandPool commandPool);
 
-    std::expected<Command, Error> CreateCommand(VkDevice device);
+    std::expected<Command, Error> CreateCommand(VkDevice device, uint32_t queueFamilyIndex);
 
     std::expected<FrameData, Error> CreateFrameData(VkDevice device);
 
@@ -90,21 +90,25 @@ namespace Swift::Vulkan
 
     std::expected<VkSampler, Error> CreateSampler(const Context &context, const SamplerCreateInfo &createInfo);
 
-    std::expected<std::tuple<VkImage, VmaAllocation>, Error> CreateBaseImage(const Swift::Context &context,
+    std::expected<std::tuple<VkImage, VmaAllocation>, Error> CreateBaseImage(const Context &context,
                                                                              const ImageCreateInfo &createInfo);
 
     std::expected<VkImageView, Error> CreateImageView(VkDevice device,
                                                       VkImage image,
                                                       const ImageCreateInfo &createInfo);
 
-    std::expected<Swift::Image, Error> CreateImage(const Swift::Context &context,
+    std::expected<Image, Error> CreateImage(const Context &context,
                                                    const ImageCreateInfo &createInfo);
 
-    void DestroyImage(const Swift::Context &context, const Image &image);
+    void DestroyImage(const Context &context, const Image &image);
 
-    std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &context, const BufferCreateInfo &createInfo);
+    std::expected<Buffer, Error> CreateBuffer(const Context &context, const BufferCreateInfo &createInfo);
 
-    std::expected<void *, Error> MapBuffer(const Swift::Context &context, const Swift::Buffer &buffer);
+    void DestroyBuffer(const VmaAllocator& allocator, Buffer &buffer);
+
+    std::expected<void *, Error> MapBuffer(const Context &context, const Buffer &buffer);
+
+    void UnmapBuffer(const Context &context, const Buffer &buffer);
 
 #include "VulkanInit.inl"
 } // namespace Swift::Vulkan

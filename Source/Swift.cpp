@@ -17,6 +17,9 @@ namespace
     uint32_t gCurrentFrame = 0;
 
     Queue gGraphicsQueue;
+    Queue gTransferQueue;
+    Command gTransferCommand;
+    VkFence gTransferFence;
     VkPipelineLayout gPipelineLayout;
     Descriptor gDescriptor;
 
@@ -49,6 +52,28 @@ Swift::Init(const InitInfo &info)
     }
     gGraphicsQueue = queueResult.value();
 
+    const auto transferQueueResult =
+            Vulkan::CreateQueue(gContext, vkb::QueueType::transfer);
+    if (!transferQueueResult)
+    {
+        return std::unexpected(queueResult.error());
+    }
+    gTransferQueue = transferQueueResult.value();
+
+    const auto transferFenceResult = Vulkan::CreateFence(gContext.Device);
+    if (!transferFenceResult)
+    {
+        return std::unexpected(transferFenceResult.error());
+    }
+    gTransferFence = transferFenceResult.value();
+
+    const auto transferCommandResult = Vulkan::CreateCommand(gContext.Device, gTransferQueue.QueueIndex);
+    if (!transferCommandResult)
+    {
+        return std::unexpected(transferCommandResult.error());
+    }
+    gTransferCommand = transferCommandResult.value();
+
     const auto swapchainResult =
             Vulkan::CreateSwapchain(gContext, gGraphicsQueue, info.Extent);
     if (!swapchainResult)
@@ -74,8 +99,7 @@ Swift::Init(const InitInfo &info)
     }
     gDescriptor = descriptorResult.value();
 
-    const auto pipelineLayoutResult =
-            Vulkan::CreatePipelineLayout(gContext, gDescriptor.Layout);
+    const auto pipelineLayoutResult = Vulkan::CreatePipelineLayout(gContext, gDescriptor.Layout);
     if (!pipelineLayoutResult)
     {
         return std::unexpected(pipelineLayoutResult.error());
@@ -91,8 +115,7 @@ Swift::Init(const InitInfo &info)
     gSamplers.emplace_back(samplerResult.value());
 
 #ifdef SWIFT_IMGUI
-    const auto imguiResult = Vulkan::CreateImGUI(gContext, gGraphicsQueue, info);
-    if (!imguiResult)
+    if (const auto imguiResult = Vulkan::CreateImGUI(gContext, gGraphicsQueue, info); !imguiResult)
     {
         return std::unexpected(imguiResult.error());
     }
@@ -126,12 +149,13 @@ void Swift::Shutdown()
 
     for (const auto &tempImage: gTempImages)
     {
-        vmaDestroyImage(gContext.Allocator, tempImage.BaseImage, tempImage.Allocation);
+        Vulkan::DestroyImage(gContext, tempImage);
     }
 
-    for (const auto &buffer: gBuffers)
+    for (auto &buffer: gBuffers)
     {
-        vmaDestroyBuffer(gContext.Allocator, buffer.BaseBuffer, buffer.Allocation);
+        if (!buffer.Allocation) continue;
+        Vulkan::DestroyBuffer(gContext.Allocator, buffer);
     }
 
     for (const auto &shader: gShaders)
@@ -148,6 +172,8 @@ void Swift::Shutdown()
         vkDestroyFence(gContext.Device, Fence, nullptr);
     }
 
+    vkDestroyFence(gContext.Device, gTransferFence, nullptr);
+    vkDestroyCommandPool(gContext.Device, gTransferCommand.Pool, nullptr);
     vkDestroyDescriptorPool(gContext.Device, gDescriptor.Pool, nullptr);
     vkDestroyDescriptorSetLayout(gContext.Device, gDescriptor.Layout, nullptr);
 
@@ -155,6 +181,7 @@ void Swift::Shutdown()
     {
         vkDestroyImageView(gContext.Device, image.ImageView, nullptr);
     }
+    Vulkan::DestroyImage(gContext, gSwapchain.DepthImage);
     vkDestroySwapchainKHR(gContext.Device, gSwapchain.SwapChain, nullptr);
     vmaDestroyAllocator(gContext.Allocator);
     vkb::destroy_device(gContext.Device);
@@ -174,9 +201,9 @@ std::expected<void, Error> Swift::BeginFrame(const DynamicInfo &info)
     if (info.Extent != gSwapchain.Dimensions)
     {
         const auto swapchainResult = Vulkan::RecreateSwapchain(gContext,
-                                                       gGraphicsQueue,
-                                                       gSwapchain,
-                                                       info.Extent);
+                                                               gGraphicsQueue,
+                                                               gSwapchain,
+                                                               info.Extent);
         if (!swapchainResult)
         {
             return std::unexpected(swapchainResult.error());
@@ -209,55 +236,64 @@ std::expected<void, Error> Swift::BeginFrame(const DynamicInfo &info)
 
     Vulkan::BeginCommandBuffer(currentFrameData.Command);
 
+    vkCmdBindDescriptorSets(currentFrameData.Command.Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, gPipelineLayout, 0, 1,
+                            &gDescriptor.Set, 0, nullptr);
+
+#ifdef SWIFT_IMGUI
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+#endif
     return {};
 }
 
-std::expected<void,
-    Error>
-Swift::EndFrame(const DynamicInfo &info)
+std::expected<void, Error> Swift::EndFrame(const DynamicInfo &info)
 {
     const auto &[Command, ImageAvailable, RenderFinished, Fence] = gFrameData.at(gCurrentFrame);
 
     auto &image = Vulkan::GetSwapchainImage(gSwapchain);
-     Vulkan::TransitionImage(Command,
-                             image,
-                             image.CurrentLayout,
-                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                             VK_IMAGE_ASPECT_COLOR_BIT);
+    auto &depthImage = gSwapchain.DepthImage;
 
-     const VkRenderingAttachmentInfo colorInfo{
-         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-         .imageView = image.ImageView,
-         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-     };
+#ifdef SWIFT_IMGUI
+    Vulkan::TransitionImage(Command,
+                            image,
+                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    Vulkan::TransitionImage(Command,
+                            depthImage,
+                            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                            VK_IMAGE_ASPECT_DEPTH_BIT);
 
-     const VkRenderingAttachmentInfo depthInfo{
-         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-         .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-     };
+    const VkRenderingAttachmentInfo colorInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = image.ImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+    };
 
-     Vulkan::BeginRendering(Command, {colorInfo}, depthInfo, info.Extent);
-     ImGui::Render();
-     ImGui_ImplVulkan_RenderDrawData(
-         ImGui::GetDrawData(),
-         Command.Buffer);
+    const VkRenderingAttachmentInfo depthInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = depthImage.ImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+    };
+
+    Vulkan::BeginRendering(Command, {colorInfo}, depthInfo, info.Extent);
+    ImGui::Render();
+    ImGui_ImplVulkan_RenderDrawData(
+        ImGui::GetDrawData(),
+        Command.Buffer);
 
     Vulkan::EndRendering(Command);
 
     ImGui::EndFrame();
+#endif
+
 
     Vulkan::TransitionImage(Command,
                             image,
-                            image.CurrentLayout,
-                            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                            VK_IMAGE_ASPECT_COLOR_BIT);
+                            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     Vulkan::EndCommandBuffer(Command);
 
     const SubmitInfo submitInfo{
@@ -269,8 +305,7 @@ Swift::EndFrame(const DynamicInfo &info)
     };
     Vulkan::SubmitQueue(gGraphicsQueue, Command, submitInfo);
 
-    const auto result =
-            Vulkan::Present(gSwapchain, gGraphicsQueue, RenderFinished);
+    const auto result = Vulkan::Present(gSwapchain, gGraphicsQueue, RenderFinished);
 
     if (!result)
     {
@@ -302,9 +337,7 @@ void Swift::BeginRendering(const std::vector<ImageHandle> &colorAttachments,
         colorAttachment.imageView = realImage.ImageView;
         Vulkan::TransitionImage(currentFrameData.Command,
                                 realImage,
-                                realImage.CurrentLayout,
-                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                VK_IMAGE_ASPECT_COLOR_BIT);
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
     if (depthAttachment != InvalidHandle)
     {
@@ -312,7 +345,6 @@ void Swift::BeginRendering(const std::vector<ImageHandle> &colorAttachments,
         shader.DepthAttachment.imageView = depthImage.ImageView;
         Vulkan::TransitionImage(currentFrameData.Command,
                                 depthImage,
-                                depthImage.CurrentLayout,
                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                                 VK_IMAGE_ASPECT_DEPTH_BIT);
     }
@@ -341,7 +373,7 @@ void Swift::BindShader(const ShaderHandle &shaderHandle)
 
 void Swift::DispatchCompute(const uint32_t groupX, const uint32_t groupY, const uint32_t groupZ)
 {
-    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    const auto &currentFrameData = gFrameData.at(gCurrentFrame);
     vkCmdDispatch(currentFrameData.Command.Buffer, groupX, groupY, groupZ);
 }
 
@@ -404,9 +436,7 @@ void Swift::ClearSwapchain(const Float4 color)
     auto &image = Vulkan::GetSwapchainImage(gSwapchain);
     Vulkan::TransitionImage(currentFrameData.Command,
                             image,
-                            image.CurrentLayout,
-                            VK_IMAGE_LAYOUT_GENERAL,
-                            VK_IMAGE_ASPECT_COLOR_BIT);
+                            VK_IMAGE_LAYOUT_GENERAL);
     Vulkan::ClearImage(currentFrameData.Command, image, color);
 }
 
@@ -417,10 +447,14 @@ void Swift::ClearImage(const ImageHandle imageHandle,
     auto &image = gImages.at(imageHandle);
     Vulkan::TransitionImage(currentFrameData.Command,
                             image,
-                            image.CurrentLayout,
-                            VK_IMAGE_LAYOUT_GENERAL,
-                            VK_IMAGE_ASPECT_COLOR_BIT);
+                            VK_IMAGE_LAYOUT_GENERAL);
     Vulkan::ClearImage(currentFrameData.Command, image, color);
+}
+
+void Swift::PushConstant(const void *data, const uint32_t size)
+{
+    const auto &currentFrameData = gFrameData.at(gCurrentFrame);
+    vkCmdPushConstants(currentFrameData.Command.Buffer, gPipelineLayout, VK_SHADER_STAGE_ALL, 0, size, data);
 }
 
 void Swift::SetViewportAndScissor(const Int2 extent)
@@ -490,10 +524,8 @@ void Swift::Resolve(const ImageHandle srcImageHandle, const ImageHandle resolved
     auto &srcImage = gImages.at(srcImageHandle);
     auto &resolvedImage = gImages.at(resolvedImageHandle);
     const auto &extent = VkExtent3D(srcImage.Extent.x, srcImage.Extent.y, 1);
-    Vulkan::TransitionImage(currentFrameData.Command, srcImage, srcImage.CurrentLayout,
-                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-    Vulkan::TransitionImage(currentFrameData.Command, resolvedImage, resolvedImage.CurrentLayout,
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    Vulkan::TransitionImage(currentFrameData.Command, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    Vulkan::TransitionImage(currentFrameData.Command, resolvedImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     Vulkan::ResolveImage(currentFrameData.Command.Buffer, srcImage.BaseImage, resolvedImage.BaseImage, extent);
 }
 
@@ -592,11 +624,9 @@ void Swift::BlitImage(const ImageHandle srcImageHandle, const ImageHandle dstIma
     auto &dstImage = gImages.at(dstImageHandle);
     Vulkan::TransitionImage(currentFrameData.Command,
                             srcImage,
-                            srcImage.CurrentLayout,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     Vulkan::TransitionImage(currentFrameData.Command,
                             dstImage,
-                            dstImage.CurrentLayout,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     Vulkan::BlitImage(currentFrameData.Command,
                       srcImage,
@@ -614,11 +644,9 @@ void Swift::BlitToSwapchain(const ImageHandle srcImageHandle,
 
     Vulkan::TransitionImage(currentFrameData.Command,
                             srcImage,
-                            srcImage.CurrentLayout,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     Vulkan::TransitionImage(currentFrameData.Command,
                             dstImage,
-                            dstImage.CurrentLayout,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     Vulkan::BlitImage(currentFrameData.Command,
                       srcImage,
@@ -627,12 +655,28 @@ void Swift::BlitToSwapchain(const ImageHandle srcImageHandle,
                       gSwapchain.Dimensions);
 }
 
-std::expected<Int2, Error> Swift::GetImageSize(const ImageHandle imageHandle)
+void Swift::BeginTransfer()
 {
-    if (imageHandle == InvalidHandle || imageHandle >= gImages.size())
+    Vulkan::BeginCommandBuffer(gTransferCommand);
+}
+
+void Swift::EndTransfer()
+{
+    Vulkan::EndCommandBuffer(gTransferCommand);
+    const SubmitInfo submitInfo
     {
-        return std::unexpected(Error::eImageNotFound);
-    }
+        .WaitSemaphore = nullptr,
+        .WaitPipelineStage = VK_PIPELINE_STAGE_2_NONE,
+        .SignalSemaphore = nullptr,
+        .SignalPipelineStage = VK_PIPELINE_STAGE_2_NONE,
+        .Fence = gTransferFence
+    };
+    Vulkan::SubmitQueue(gTransferQueue, gTransferCommand, submitInfo);
+    const auto result = Vulkan::WaitFence(gContext.Device, gTransferFence);
+}
+
+Int2 Swift::GetImageSize(const ImageHandle imageHandle)
+{
     return gImages.at(imageHandle).Extent;
 }
 
@@ -656,6 +700,12 @@ std::expected<BufferHandle, Error> Swift::CreateBuffer(const BufferCreateInfo &c
     return static_cast<uint32_t>(gBuffers.size() - 1);
 }
 
+void Swift::DestroyBuffer(const BufferHandle bufferHandle)
+{
+    auto& buffer = gBuffers.at(bufferHandle);
+    Vulkan::DestroyBuffer(gContext.Allocator, buffer);
+}
+
 std::expected<void *, Error> Swift::MapBuffer(const BufferHandle bufferHandle)
 {
 #ifdef SWIFT_DEBUG
@@ -668,11 +718,18 @@ std::expected<void *, Error> Swift::MapBuffer(const BufferHandle bufferHandle)
     return Vulkan::MapBuffer(gContext, buffer);
 }
 
-void Swift::CopyBuffer(const BufferHandle srcHandle, const BufferHandle dstHandle, const std::vector<BufferCopy>& copyRegions)
+void Swift::UnmapBuffer(const BufferHandle bufferHandle)
 {
-    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
-    const auto& srcBuffer = gBuffers.at(srcHandle);
-    const auto& dstBuffer = gBuffers.at(dstHandle);
+    const auto &buffer = gBuffers.at(bufferHandle);
+    Vulkan::UnmapBuffer(gContext, buffer);
+}
+
+void Swift::CopyBuffer(const BufferHandle srcHandle, const BufferHandle dstHandle,
+                       const std::vector<BufferCopy> &copyRegions)
+{
+    const auto &currentFrameData = gFrameData.at(gCurrentFrame);
+    const auto &srcBuffer = gBuffers.at(srcHandle);
+    const auto &dstBuffer = gBuffers.at(dstHandle);
 
     Vulkan::CopyBuffer(currentFrameData.Command.Buffer, srcBuffer.BaseBuffer, dstBuffer.BaseBuffer, copyRegions);
 }
@@ -711,6 +768,11 @@ std::expected<ImageHandle, Error> Swift::CreateImage(const ImageCreateInfo &crea
                                       arrayElement);
     }
     return arrayElement;
+}
+
+void Swift::DestroyImage(const ImageHandle handle)
+{
+    Vulkan::DestroyImage(gContext, gImages.at(handle));
 }
 
 std::expected<TempImageHandle, Error> Swift::CreateTempImage(const ImageCreateInfo &createInfo)
@@ -778,4 +840,37 @@ std::expected<void, Error> Swift::UpdateImage(const ImageHandle baseImageHandle,
 void Swift::WaitIdle()
 {
     vkDeviceWaitIdle(gContext.Device);
+}
+
+void Swift::TransitionImage(const ImageHandle imageHandle, const VkImageLayout newLayout)
+{
+    const auto &currentFrameData = gFrameData.at(gCurrentFrame);
+    auto &image = gImages.at(imageHandle);
+    Vulkan::TransitionImage(currentFrameData.Command, image, newLayout);
+}
+
+void Swift::CopyBufferToImage(const BufferHandle srcBuffer, const ImageHandle dstImageHandle,
+                              const std::vector<BufferImageCopy> &copyRegions)
+{
+    const auto &buffer = gBuffers.at(srcBuffer);
+    auto &image = gImages.at(dstImageHandle);
+    std::vector<VkBufferImageCopy2> vkCopyRegions;
+    for (const auto &[BufferOffset, MipLevel, ArrayLayer, Extent]: copyRegions)
+    {
+        VkBufferImageCopy2 copy
+        {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+            .bufferOffset = BufferOffset,
+            .imageSubresource = Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT, MipLevel,
+                                                                  ArrayLayer),
+            .imageExtent = VkExtent3D(Extent.x, Extent.y, 1),
+        };
+        vkCopyRegions.emplace_back(copy);
+    }
+    Vulkan::TransitionImage(gTransferCommand, image,
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    Vulkan::CopyBufferToImage(gTransferCommand.Buffer, buffer.BaseBuffer, image.BaseImage,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, vkCopyRegions);
+    Vulkan::TransitionImage(gTransferCommand, image,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

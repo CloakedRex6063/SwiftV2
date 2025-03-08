@@ -4,6 +4,7 @@
 #include "SwiftStructs.hpp"
 #include "Utility.hpp"
 #include "imgui.h"
+#include "Image.hpp"
 
 VkSampleCountFlagBits gSamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -15,7 +16,7 @@ int main()
     auto initInfo = Swift::InitInfo()
             .SetAppName("Showcase")
             .SetEngineName("Swift")
-            .SetPreferredDeviceType(Swift::DeviceType::eDiscrete)
+            .SetPreferredDeviceType(Swift::DeviceType::eIntegrated)
             .SetExtent({1280, 720})
             .SetWindow(window)
             .SetEnableMonitorLayer(true);
@@ -40,24 +41,15 @@ int main()
     if (!shaderResult) return -1;
     const auto shader = shaderResult.value();
 
-    auto computeCode = Utility::ReadBinaryFile("Shaders/shader.comp.spv");
-    Swift::ComputeShaderCreateInfo computeShaderCreateInfo{
-        .ComputeCode = std::move(computeCode),
-    };
-
-    const auto computeShaderResult = Swift::CreateComputeShader(computeShaderCreateInfo);
-    if (!computeShaderResult) return -1;
-    const auto computeShader = computeShaderResult.value();
-
     Swift::ImageCreateInfo imageInfo = {
         .Format = VK_FORMAT_R16G16B16A16_SFLOAT,
-        .Extent = VkExtent2D{1280, 720},
-        .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+        .Extent = Swift::Int2{1280, 720},
+        .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .Samples = gSamples,
         .MipLevels = 1,
-        .IsCubemap = false,
+        .ArrayLayers = 1,
     };
 
     const auto imageResult = Swift::CreateImage(imageInfo);
@@ -70,16 +62,19 @@ int main()
 
     Swift::ImageCreateInfo depthImageInfo = {
         .Format = VK_FORMAT_D32_SFLOAT,
-        .Extent = VkExtent2D{1280, 720},
+        .Extent = Swift::Int2{1280, 720},
         .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         .Samples = gSamples,
         .MipLevels = 1,
-        .IsCubemap = false,
+        .ArrayLayers = 1,
     };
     const auto depthImageResult = Swift::CreateImage(depthImageInfo);
     const auto depthImage = depthImageResult.value();
+
+    const auto sampledImageResult = Swift::Image::LoadImage("Resources/Default_albedo.dds");
+    const auto sampledImage = sampledImageResult.value();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -88,23 +83,23 @@ int main()
         glfwGetFramebufferSize(window, &width, &height);
         auto info = Swift::DynamicInfo().SetExtent({width, height});
 
-        const auto imageSize = Swift::GetImageSize(renderImage).value();
+        const auto imageSize = Swift::GetImageSize(renderImage);
         if (imageSize.x != width || imageSize.y != height)
         {
             Swift::WaitIdle();
-            imageInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height),};
+            imageInfo.Extent = Swift::Int2{width, height};
             const auto tempImage = Swift::CreateTempImage(imageInfo);
             assert(tempImage);
             const auto colorResult = Swift::UpdateImage(renderImage, tempImage.value());
             assert(colorResult);
 
-            resolvedInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+            resolvedInfo.Extent = Swift::Int2{width, height};
             const auto tempResolveImage = Swift::CreateTempImage(resolvedInfo);
             assert(tempResolveImage);
             const auto resolveResult = Swift::UpdateImage(resolvedImage, tempResolveImage.value());
             assert(resolveResult);
 
-            depthImageInfo.Extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+            depthImageInfo.Extent = Swift::Int2{width, height};
             const auto tempDepthImage = Swift::CreateTempImage(depthImageInfo);
             assert(tempDepthImage);
             const auto depthResult = Swift::UpdateImage(depthImage, tempDepthImage.value());
@@ -117,8 +112,7 @@ int main()
 
         Swift::ClearImage(renderImage, Swift::Float4{0.2, 0.3, 0.4, 0.4});
 
-        Swift::BindShader(computeShader);
-        Swift::DispatchCompute(1, 1, 1);
+        Swift::BlitImage(sampledImage, renderImage, {2048, 2048}, {width, height});
 
         Swift::BindShader(shader);
 

@@ -57,6 +57,14 @@ namespace Swift
     void ClearImage(ImageHandle imageHandle,
                     Float4 color);
 
+    void PushConstant(const void* data, uint32_t size);
+
+    template <typename T>
+    void PushConstant(T pushConstant)
+    {
+        PushConstant(&pushConstant, sizeof(pushConstant));
+    }
+
     void SetViewportAndScissor(Int2 extent);
 
     void SetCullMode(CullMode cullMode);
@@ -83,18 +91,23 @@ namespace Swift
     void BlitToSwapchain(ImageHandle srcImageHandle,
                          Int2 srcExtent);
 
+    // For doing transfer only operations on the transfer queue, this is useful for doing transfer operations in parallel with rendering
+    void BeginTransfer();
+    void EndTransfer();
+
     // Shader Operations
     std::expected<ShaderHandle, Error> CreateGraphicsShader(const GraphicsShaderCreateInfo &createInfo);
     std::expected<ShaderHandle, Error> CreateComputeShader(const ComputeShaderCreateInfo &createInfo);
 
     // Image Operations
     std::expected<ImageHandle, Error> CreateImage(const ImageCreateInfo &createInfo);
+    void DestroyImage(ImageHandle handle);
 
     std::expected<TempImageHandle, Error> CreateTempImage(const ImageCreateInfo &createInfo);
 
     std::expected<SamplerHandle, Error> CreateSampler(const SamplerCreateInfo &createInfo);
 
-    std::expected<Int2, Error> GetImageSize(ImageHandle imageHandle);
+    Int2 GetImageSize(ImageHandle imageHandle);
 
     std::expected<VkImageView, Error> GetImageView(ImageHandle imageHandle);
 
@@ -104,8 +117,10 @@ namespace Swift
 
     // Buffer Operations
     std::expected<BufferHandle, Error> CreateBuffer(const BufferCreateInfo &createInfo);
+    void DestroyBuffer(BufferHandle bufferHandle);
 
     std::expected<void *, Error> MapBuffer(BufferHandle bufferHandle);
+    void UnmapBuffer(BufferHandle bufferHandle);
 
     void CopyBuffer(BufferHandle srcHandle, BufferHandle dstHandle, const std::vector<BufferCopy> &copyRegions);
 
@@ -113,4 +128,7 @@ namespace Swift
 
     // Misc
     void WaitIdle();
+
+    void TransitionImage(ImageHandle imageHandle, VkImageLayout newLayout);
+    void CopyBufferToImage(BufferHandle srcBuffer, ImageHandle dstImageHandle, const std::vector<BufferImageCopy> &copyRegions);
 } // namespace Swift

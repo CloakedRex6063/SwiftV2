@@ -30,7 +30,7 @@ CreateInstance(const InitInfo &info)
 inline vkb::Result<vkb::PhysicalDevice>
 CreateSelector(vkb::Instance instance,
                VkSurfaceKHR surface,
-               vkb::PreferredDeviceType preferredDeviceType)
+               DeviceType preferredDeviceType)
 {
     VkPhysicalDeviceFeatures deviceFeatures = {
         .multiDrawIndirect = true,
@@ -79,8 +79,26 @@ CreateSelector(vkb::Instance instance,
             .set_required_features_13(deviceFeatures13)
             .set_required_features_12(deviceFeatures12)
             .set_required_features_11(deviceFeatures11)
-            .set_required_features(deviceFeatures)
-            .prefer_gpu_device_type(preferredDeviceType);
+            .set_required_features(deviceFeatures);
+
+    for (auto& selector : gpuSelector.select_devices().value())
+    {
+        switch (preferredDeviceType)
+        {
+            case DeviceType::eIntegrated:
+                if (selector.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+                {
+                    return selector;
+                }
+                break;
+            case DeviceType::eDiscrete:
+                if (selector.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+                {
+                    return selector;
+                }
+                break;
+        }
+    }
     return gpuSelector.select();
 };
 
@@ -110,18 +128,8 @@ CreateContext(const InitInfo &info)
     }
 #endif
     context.Surface = surface;
-    vkb::PreferredDeviceType deviceType = {};
-    switch (info.PreferredDeviceType)
-    {
-        case DeviceType::eIntegrated:
-            deviceType = vkb::PreferredDeviceType::integrated;
-            break;
-        case DeviceType::eDiscrete:
-            deviceType = vkb::PreferredDeviceType::discrete;
-            break;
-    }
     const auto gpuSelector =
-            Vulkan::CreateSelector(context.Instance, surface, deviceType);
+            Vulkan::CreateSelector(context.Instance, surface, info.PreferredDeviceType);
     if (!gpuSelector.has_value())
     {
         return std::unexpected(Error::eNoDeviceFound);
@@ -284,6 +292,25 @@ CreateSwapchain(const Context &context,
     {
         return std::unexpected(Error::eSwapchainCreateFailed);
     }
+    constexpr auto preferredPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+    uint32_t count = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU, context.Surface, &count, nullptr);
+
+    std::vector<VkPresentModeKHR> presentModes(count);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU, context.Surface, &count, presentModes.data());
+
+    VkPresentModeKHR currentPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+
+    const auto it = std::ranges::find_if(presentModes, [&](VkPresentModeKHR presentMode)
+    {
+        return presentMode == currentPresentMode;
+    });
+
+    VkPresentModeKHR presentMode = preferredPresentMode;
+    if (it == presentModes.end())
+    {
+        presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    }
 
     constexpr uint32_t imageCount = 3;
     const VkSwapchainCreateInfoKHR swapchainInfo{
@@ -301,7 +328,7 @@ CreateSwapchain(const Context &context,
         .pQueueFamilyIndices = &queue.QueueIndex,
         .preTransform = surfaceCapabilities.currentTransform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = VK_PRESENT_MODE_MAILBOX_KHR,
+        .presentMode = presentMode,
         .clipped = true,
     };
     VkSwapchainKHR swapchain;
@@ -322,10 +349,28 @@ CreateSwapchain(const Context &context,
         return std::unexpected(Error::eSwapchainCreateFailed);
     }
 
+
+    Swift::ImageCreateInfo depthImageInfo = {
+        .Format = VK_FORMAT_D32_SFLOAT,
+        .Extent = Swift::Int2(dimensions.x, dimensions.y),
+        .Usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        .Samples = VK_SAMPLE_COUNT_1_BIT,
+        .MipLevels = 1,
+        .ArrayLayers = 1,
+    };
+    const auto depthImageResult = CreateImage(context, depthImageInfo);
+    if (!depthImageResult)
+    {
+        return std::unexpected(Error::eSwapchainCreateFailed);
+    }
+
     Swapchain newSwapchain{
         .SwapChain = swapchain,
         .Dimensions = dimensions,
         .Images = imageResult.value(),
+        .DepthImage = depthImageResult.value(),
         .CurrentImageIndex = 0,
     };
 
@@ -346,6 +391,8 @@ RecreateSwapchain(const Context &context,
         {
             vkDestroyImageView(context.Device, image.ImageView, nullptr);
         }
+
+        Vulkan::DestroyImage(context, swapchain.DepthImage);
 
         vkDestroySwapchainKHR(context.Device, swapchain.SwapChain, nullptr);
 
@@ -429,9 +476,9 @@ CreateCommandBuffer(const VkDevice device,
 
 inline std::expected<Command,
     Error>
-CreateCommand(const VkDevice device)
+CreateCommand(const VkDevice device, const uint32_t queueFamilyIndex)
 {
-    const auto poolResult = CreateCommandPool(device, 0);
+    const auto poolResult = CreateCommandPool(device, queueFamilyIndex);
     if (!poolResult.has_value())
     {
         return std::unexpected(Error::eCommandPoolCreateFailed);
@@ -471,7 +518,7 @@ CreateFrameData(const VkDevice device)
     }
     frameData.Fence = fenceResult.value();
 
-    const auto commandResult = CreateCommand(device);
+    const auto commandResult = CreateCommand(device, 0);
     if (!commandResult)
     {
         return std::unexpected(commandResult.error());
@@ -883,9 +930,9 @@ CreateBaseImage(const Context &context,
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = createInfo.Format,
-        .extent = {createInfo.Extent.width, createInfo.Extent.height, 1},
+        .extent = VkExtent3D(createInfo.Extent.x, createInfo.Extent.y, 1),
         .mipLevels = createInfo.MipLevels,
-        .arrayLayers = createInfo.IsCubemap ? 6u : 1u,
+        .arrayLayers = createInfo.ArrayLayers,
         .samples = createInfo.Samples,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
         .usage = createInfo.Usage,
@@ -915,7 +962,7 @@ CreateImageView(const VkDevice device,
                 const ImageCreateInfo &createInfo)
 {
     VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    const auto layers = createInfo.IsCubemap ? 6u : 1u;
+    const auto layers = createInfo.ArrayLayers;
 
     if (createInfo.Format == VK_FORMAT_D16_UNORM ||
         createInfo.Format == VK_FORMAT_D32_SFLOAT)
@@ -957,8 +1004,10 @@ inline std::expected<Image, Error> CreateImage(const Context &context, const Ima
         return std::unexpected(imageViewResult.error());
     }
     image.ImageView = imageViewResult.value();
-    image.Extent = Int2(createInfo.Extent.width, createInfo.Extent.height);
+    image.Extent = createInfo.Extent;
     image.Sampler = createInfo.Sampler;
+    image.MipLevels = createInfo.MipLevels;
+    image.ArrayLayers = createInfo.ArrayLayers;
     return image;
 }
 
@@ -1014,4 +1063,16 @@ inline std::expected<void *, Error> MapBuffer(const Swift::Context &context, con
     void *data;
     const auto result = vmaMapMemory(context.Allocator, buffer.Allocation, &data);
     return CheckResult(result, data, Error::eBufferMapFailed);
+}
+
+inline void UnmapBuffer(const Swift::Context &context, const Swift::Buffer &buffer)
+{
+    vmaUnmapMemory(context.Allocator, buffer.Allocation);
+}
+
+inline void DestroyBuffer(const VmaAllocator& allocator, Buffer &buffer)
+{
+    vmaDestroyBuffer(allocator, buffer.BaseBuffer, buffer.Allocation);
+    buffer.Allocation = nullptr;
+    buffer.BaseBuffer = nullptr;
 }

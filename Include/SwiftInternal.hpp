@@ -107,6 +107,8 @@ namespace Swift
         VkImageLayout CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         VmaAllocation Allocation{};
         Int2 Extent{};
+        uint32_t MipLevels = 1;
+        uint32_t ArrayLayers = 1;
         SamplerHandle Sampler = InvalidHandle;
     };
 
@@ -122,6 +124,7 @@ namespace Swift
         VkSwapchainKHR SwapChain;
         Int2 Dimensions;
         std::vector<Image> Images;
+        Image DepthImage;
         uint32_t CurrentImageIndex;
     };
 

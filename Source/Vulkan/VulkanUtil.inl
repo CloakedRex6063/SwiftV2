@@ -48,8 +48,7 @@ GetImageSubresourceLayers(const VkImageAspectFlags aspectFlags,
 
 inline void TransitionImage(const Command &command,
                             Image &image,
-                            const VkImageLayout &oldLayout,
-                            const VkImageLayout &newLayout,
+                            const VkImageLayout newLayout,
                             const VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier2 imageBarrier{
@@ -63,10 +62,10 @@ inline void TransitionImage(const Command &command,
     imageBarrier.dstAccessMask =
             VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
 
-    imageBarrier.oldLayout = oldLayout;
+    imageBarrier.oldLayout = image.CurrentLayout;
     imageBarrier.newLayout = newLayout;
 
-    imageBarrier.subresourceRange = GetImageSubresourceRange(aspectMask);
+    imageBarrier.subresourceRange = GetImageSubresourceRange(aspectMask, 0, image.MipLevels, 0, image.ArrayLayers);
     imageBarrier.image = image.BaseImage;
 
     const VkDependencyInfo dependencyInfo{
@@ -143,7 +142,7 @@ inline void UpdateDescriptorImage(const VkDevice device, const VkDescriptorSet d
     VkDescriptorImageInfo imageInfo{
         .imageView = imageView,
         .sampler = sampler,
-        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        .imageLayout = VK_IMAGE_LAYOUT_GENERAL
     };
     const VkWriteDescriptorSet descriptorWrite{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -189,4 +188,19 @@ inline void CopyBuffer(const VkCommandBuffer commandBuffer, const VkBuffer srcBu
         .pRegions = vkCopyRegions.data()
     };
     vkCmdCopyBuffer2(commandBuffer, &copyBufferInfo);
+}
+
+inline void CopyBufferToImage(const VkCommandBuffer commandBuffer, const VkBuffer srcBuffer, const VkImage dstImage,
+                              const VkImageLayout dstLayout, const std::span<VkBufferImageCopy2> copyRegions)
+{
+    const VkCopyBufferToImageInfo2 copyImageInfo
+    {
+        .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+        .srcBuffer = srcBuffer,
+        .dstImage = dstImage,
+        .dstImageLayout = dstLayout,
+        .regionCount = static_cast<uint32_t>(copyRegions.size()),
+        .pRegions = copyRegions.data(),
+    };
+    vkCmdCopyBufferToImage2(commandBuffer, &copyImageInfo);
 }

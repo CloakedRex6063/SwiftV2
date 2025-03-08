@@ -24,8 +24,7 @@ namespace Swift::Vulkan
 
     void TransitionImage(const Command &command,
                          Image &image,
-                         const VkImageLayout &oldLayout,
-                         const VkImageLayout &newLayout,
+                         VkImageLayout newLayout,
                          VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
 
     void BlitImage(const Command &command,
@@ -46,6 +45,9 @@ namespace Swift::Vulkan
 
     void CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
                     std::span<BufferCopy> copyRegions);
+
+    void CopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
+                           VkImageLayout dstLayout, std::span<VkBufferImageCopy2> copyRegions);
 
 #include "VulkanUtil.inl"
 } // namespace Swift::Vulkan
