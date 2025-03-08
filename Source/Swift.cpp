@@ -878,6 +878,11 @@ Swift::CreateSampler(const SamplerCreateInfo& createInfo)
     return static_cast<uint32_t>(gSamplers.size() - 1);
 }
 
+VkSampler Swift::GetDefaultSampler()
+{
+    return gSamplers[0];
+}
+
 void Swift::ClearTempImages() { gTempImages.clear(); }
 
 std::expected<void,

@@ -106,6 +106,7 @@ namespace Swift
     std::expected<TempImageHandle, Error> CreateTempImage(const ImageCreateInfo &createInfo);
 
     std::expected<SamplerHandle, Error> CreateSampler(const SamplerCreateInfo &createInfo);
+    VkSampler GetDefaultSampler();
 
     Int2 GetImageSize(ImageHandle imageHandle);
 
