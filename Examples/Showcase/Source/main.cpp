@@ -126,7 +126,7 @@ int main()
 
         Swift::BeginRendering({renderImage}, depthImage, {width, height});
 
-        Swift::Draw(100000, 1, 0, 0);
+        Swift::Draw(3, 1, 0, 0);
 
         Swift::EndRendering();
 
