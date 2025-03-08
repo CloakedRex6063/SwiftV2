@@ -225,4 +225,15 @@ namespace Swift::Vulkan
         };
         vkCmdCopyBufferToImage2(commandBuffer, &copyImageInfo);
     }
+
+    inline uint64_t GetBufferAddress(const VkDevice& device,
+                          const VkBuffer buffer)
+    {
+        const VkBufferDeviceAddressInfo info
+        {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            .buffer = buffer,
+        };
+        return vkGetBufferDeviceAddress(device, &info);
+    }
 } // namespace Swift::Vulkan

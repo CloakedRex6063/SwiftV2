@@ -199,18 +199,20 @@ namespace Swift::Vulkan
         return colorAttachments;
     };
 
-    inline void ResolveImage(const VkCommandBuffer commandBuffer, const VkImage srcImage, const VkImage dstImage,
+    inline void ResolveImage(const VkCommandBuffer commandBuffer,
+                             const VkImage srcImage,
+                             const VkImage dstImage,
                              const VkExtent3D extent)
     {
-        VkImageResolve2 resolveRegion
-        {
+        VkImageResolve2 resolveRegion{
             .sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2,
-            .srcSubresource = Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
-            .dstSubresource = Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+            .srcSubresource =
+                Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+            .dstSubresource =
+                Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
             .extent = extent,
         };
-        VkResolveImageInfo2 resolveInfo
-        {
+        VkResolveImageInfo2 resolveInfo{
             .sType = VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2,
             .srcImage = srcImage,
             .srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

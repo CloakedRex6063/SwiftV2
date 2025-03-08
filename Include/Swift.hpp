@@ -121,6 +121,7 @@ namespace Swift
 
     std::expected<void *, Error> MapBuffer(BufferHandle bufferHandle);
     void UnmapBuffer(BufferHandle bufferHandle);
+    uint64_t GetBufferAddress(BufferHandle bufferHandle);
 
     void CopyBuffer(BufferHandle srcHandle, BufferHandle dstHandle, const std::vector<BufferCopy> &copyRegions);
 

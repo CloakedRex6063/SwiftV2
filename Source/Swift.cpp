@@ -775,6 +775,12 @@ void Swift::UnmapBuffer(const BufferHandle bufferHandle)
     Vulkan::UnmapBuffer(gContext, buffer);
 }
 
+uint64_t Swift::GetBufferAddress(BufferHandle bufferHandle)
+{
+    auto& buffer = gBuffers.at(bufferHandle);
+    return Vulkan::GetBufferAddress(gContext.Device, buffer.BaseBuffer);
+}
+
 void Swift::CopyBuffer(const BufferHandle srcHandle,
                        const BufferHandle dstHandle,
                        const std::vector<BufferCopy>& copyRegions)

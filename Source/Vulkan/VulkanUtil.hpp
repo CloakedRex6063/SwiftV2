@@ -71,6 +71,9 @@ namespace Swift::Vulkan
                            VkImage dstImage,
                            VkImageLayout dstLayout,
                            std::span<VkBufferImageCopy2> copyRegions);
+
+    uint64_t GetBufferAddress(const VkDevice& device,
+                              VkBuffer buffer);
 } // namespace Swift::Vulkan
 
 #include "VulkanUtil.inl"
