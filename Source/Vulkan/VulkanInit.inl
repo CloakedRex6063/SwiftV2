@@ -964,6 +964,7 @@ CreateBaseImage(const Context& context,
     };
     constexpr VmaAllocationCreateInfo allocCreateInfo{
         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+        .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
     };
     VkImage image;
     VmaAllocation allocation;
