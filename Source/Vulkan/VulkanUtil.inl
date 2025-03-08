@@ -48,10 +48,10 @@ namespace Swift::Vulkan
         return range;
     }
 
-    inline void TransitionImage(const Command& command,
-                                Image& image,
-                                const VkImageLayout newLayout,
-                                const VkImageAspectFlags aspectMask)
+    inline VkImageMemoryBarrier2
+    TransitionImage(Image& image,
+                    const VkImageLayout newLayout,
+                    const VkImageAspectFlags aspectMask)
     {
         VkImageMemoryBarrier2 imageBarrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
@@ -73,14 +73,21 @@ namespace Swift::Vulkan
                                      0,
                                      image.ArrayLayers);
         imageBarrier.image = image.BaseImage;
+        image.CurrentLayout = imageBarrier.newLayout;
+        return imageBarrier;
+    }
 
+    inline void
+    PipelineBarrier(const VkCommandBuffer commandBuffer,
+                    const std::vector<VkImageMemoryBarrier2>& imageBarrier)
+    {
         const VkDependencyInfo dependencyInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &imageBarrier,
+            .imageMemoryBarrierCount =
+                static_cast<uint32_t>(imageBarrier.size()),
+            .pImageMemoryBarriers = imageBarrier.data(),
         };
-        vkCmdPipelineBarrier2(command.Buffer, &dependencyInfo);
-        image.CurrentLayout = imageBarrier.newLayout;
+        vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
     }
 
     inline void BlitImage(const Command& command,

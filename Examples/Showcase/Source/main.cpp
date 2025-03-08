@@ -16,7 +16,7 @@ int main()
     auto initInfo = Swift::InitInfo()
             .SetAppName("Showcase")
             .SetEngineName("Swift")
-            .SetPreferredDeviceType(Swift::DeviceType::eIntegrated)
+            .SetPreferredDeviceType(Swift::DeviceType::eDiscrete)
             .SetExtent({1280, 720})
             .SetWindow(window)
             .SetEnableMonitorLayer(true);
@@ -126,7 +126,7 @@ int main()
 
         Swift::BeginRendering({renderImage}, depthImage, {width, height});
 
-        Swift::Draw(3, 1, 0, 0);
+        Swift::Draw(100000, 1, 0, 0);
 
         Swift::EndRendering();
 
