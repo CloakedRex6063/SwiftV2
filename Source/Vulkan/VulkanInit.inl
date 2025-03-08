@@ -1,12 +1,11 @@
 #pragma once
 
-inline vkb::Result<vkb::Instance>
-CreateInstance(const InitInfo &info)
+inline vkb::Result<vkb::Instance> CreateInstance(const InitInfo& info)
 {
     auto instanceBuilder = vkb::InstanceBuilder()
-            .require_api_version(1, 3, 0)
-            .set_app_name(info.AppName.c_str())
-            .set_engine_name(info.EngineName.c_str());
+                               .require_api_version(1, 3, 0)
+                               .set_app_name(info.AppName.c_str())
+                               .set_engine_name(info.EngineName.c_str());
 
     if (info.EnableValidationLayer)
     {
@@ -15,8 +14,8 @@ CreateInstance(const InitInfo &info)
     if (info.EnableDebugMessenger)
     {
         instanceBuilder.use_default_debug_messenger()
-                .add_debug_messenger_severity(
-                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT);
+            .add_debug_messenger_severity(
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT);
     }
     if (info.EnableMonitorLayer)
     {
@@ -76,35 +75,37 @@ CreateSelector(vkb::Instance instance,
     };
 
     const auto gpuSelector = vkb::PhysicalDeviceSelector(instance, surface)
-            .set_required_features_13(deviceFeatures13)
-            .set_required_features_12(deviceFeatures12)
-            .set_required_features_11(deviceFeatures11)
-            .set_required_features(deviceFeatures);
+                                 .set_required_features_13(deviceFeatures13)
+                                 .set_required_features_12(deviceFeatures12)
+                                 .set_required_features_11(deviceFeatures11)
+                                 .set_required_features(deviceFeatures);
 
     for (auto& selector : gpuSelector.select_devices().value())
     {
         switch (preferredDeviceType)
         {
-            case DeviceType::eIntegrated:
-                if (selector.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-                {
-                    return selector;
-                }
-                break;
-            case DeviceType::eDiscrete:
-                if (selector.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-                {
-                    return selector;
-                }
-                break;
+        case DeviceType::eIntegrated:
+            if (selector.properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            {
+                return selector;
+            }
+            break;
+        case DeviceType::eDiscrete:
+            if (selector.properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                return selector;
+            }
+            break;
         }
     }
     return gpuSelector.select();
 };
 
 inline std::expected<Context,
-    Error>
-CreateContext(const InitInfo &info)
+                     Error>
+CreateContext(const InitInfo& info)
 {
     Context context{};
     const auto instanceResult = CreateInstance(info);
@@ -118,23 +119,24 @@ CreateContext(const InitInfo &info)
     VkSurfaceKHR surface = nullptr;
 #ifdef SWIFT_GLFW
     const auto result =
-            glfwCreateWindowSurface(context.Instance,
-                                    std::get<GLFWwindow *>(info.Window),
-                                    nullptr,
-                                    &surface);
+        glfwCreateWindowSurface(context.Instance,
+                                std::get<GLFWwindow*>(info.Window),
+                                nullptr,
+                                &surface);
     if (result != VK_SUCCESS)
     {
         return std::unexpected(Error::eSurfaceInitFailed);
     }
 #endif
     context.Surface = surface;
-    const auto gpuSelector =
-            Vulkan::CreateSelector(context.Instance, surface, info.PreferredDeviceType);
+    const auto gpuSelector = Vulkan::CreateSelector(context.Instance,
+                                                    surface,
+                                                    info.PreferredDeviceType);
     if (!gpuSelector.has_value())
     {
         return std::unexpected(Error::eNoDeviceFound);
     }
-    const vkb::PhysicalDevice &gpu = gpuSelector.value();
+    const vkb::PhysicalDevice& gpu = gpuSelector.value();
     context.GPU = gpu;
 
     const auto deviceResult = vkb::DeviceBuilder(gpuSelector.value()).build();
@@ -155,9 +157,9 @@ CreateContext(const InitInfo &info)
     };
     const VmaAllocatorCreateInfo allocatorInfo{
         .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-        .pVulkanFunctions = &vulkanFunctions,
         .physicalDevice = context.GPU,
         .device = context.Device,
+        .pVulkanFunctions = &vulkanFunctions,
         .instance = context.Instance,
         .vulkanApiVersion = VK_API_VERSION_1_3,
     };
@@ -167,11 +169,15 @@ CreateContext(const InitInfo &info)
 }
 
 #ifdef SWIFT_IMGUI
-inline std::expected<void, Error> CreateImGUI(const Swift::Context &context, const Queue graphicsQueue, const InitInfo &info)
+inline std::expected<void,
+                     Error>
+CreateImGUI(const Swift::Context& context,
+            const Queue graphicsQueue,
+            const InitInfo& info)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     auto format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -200,7 +206,8 @@ inline std::expected<void, Error> CreateImGUI(const Swift::Context &context, con
 
     if (std::holds_alternative<GLFWwindow*>(info.Window))
     {
-        if (!ImGui_ImplGlfw_InitForVulkan(std::get<GLFWwindow*>(info.Window), true))
+        if (!ImGui_ImplGlfw_InitForVulkan(std::get<GLFWwindow*>(info.Window),
+                                          true))
         {
             return std::unexpected(Error::eFailedToInitImGUI);
         }
@@ -211,8 +218,8 @@ inline std::expected<void, Error> CreateImGUI(const Swift::Context &context, con
 #endif
 
 inline std::expected<Queue,
-    Error>
-CreateQueue(const Context &context,
+                     Error>
+CreateQueue(const Context& context,
             const vkb::QueueType queueType)
 {
     Queue queue{};
@@ -235,8 +242,8 @@ CreateQueue(const Context &context,
 }
 
 inline std::expected<std::vector<Image>,
-    Error>
-CreateSwapchainImages(const Context &context,
+                     Error>
+CreateSwapchainImages(const Context& context,
                       const VkSwapchainKHR swapchain,
                       const uint32_t imageCount)
 {
@@ -248,7 +255,7 @@ CreateSwapchainImages(const Context &context,
                             &getCount,
                             baseImages.data());
 
-    for (const auto &[index, image]: std::views::enumerate(images))
+    for (const auto& [index, image] : std::views::enumerate(images))
     {
         image.BaseImage = baseImages[index];
         VkImageViewCreateInfo imageViewCreateInfo{
@@ -257,7 +264,7 @@ CreateSwapchainImages(const Context &context,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
             .format = VK_FORMAT_B8G8R8A8_UNORM,
             .subresourceRange =
-            GetImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT),
+                GetImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT),
         };
         const auto result = vkCreateImageView(context.Device,
                                               &imageViewCreateInfo,
@@ -273,38 +280,43 @@ CreateSwapchainImages(const Context &context,
 }
 
 inline std::expected<Swapchain,
-    Error>
-CreateSwapchain(const Context &context,
-                const Queue &queue,
-                const Int2 &dimensions)
+                     Error>
+CreateSwapchain(const Context& context,
+                const Queue& queue,
+                const Int2& dimensions)
 {
     constexpr VkSurfaceFormatKHR surfaceFormat{
         .format = VK_FORMAT_B8G8R8A8_UNORM,
-        .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-    };
+        .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
     VkSurfaceCapabilitiesKHR surfaceCapabilities{};
     auto result =
-            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context.GPU,
-                                                      context.Surface,
-                                                      &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context.GPU,
+                                                  context.Surface,
+                                                  &surfaceCapabilities);
     if (result != VK_SUCCESS)
     {
         return std::unexpected(Error::eSwapchainCreateFailed);
     }
     constexpr auto preferredPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     uint32_t count = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU, context.Surface, &count, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU,
+                                              context.Surface,
+                                              &count,
+                                              nullptr);
 
     std::vector<VkPresentModeKHR> presentModes(count);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU, context.Surface, &count, presentModes.data());
+    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU,
+                                              context.Surface,
+                                              &count,
+                                              presentModes.data());
 
     VkPresentModeKHR currentPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 
-    const auto it = std::ranges::find_if(presentModes, [&](VkPresentModeKHR presentMode)
-    {
-        return presentMode == currentPresentMode;
-    });
+    const auto it =
+        std::ranges::find_if(presentModes,
+                             [&](VkPresentModeKHR presentMode)
+                             { return presentMode == currentPresentMode; });
 
     VkPresentModeKHR presentMode = preferredPresentMode;
     if (it == presentModes.end())
@@ -342,13 +354,12 @@ CreateSwapchain(const Context &context,
     }
 
     const auto imageResult =
-            CreateSwapchainImages(context, swapchain, imageCount);
+        CreateSwapchainImages(context, swapchain, imageCount);
 
     if (!imageResult)
     {
         return std::unexpected(Error::eSwapchainCreateFailed);
     }
-
 
     Swift::ImageCreateInfo depthImageInfo = {
         .Format = VK_FORMAT_D32_SFLOAT,
@@ -378,16 +389,16 @@ CreateSwapchain(const Context &context,
 }
 
 inline std::expected<void,
-    Error>
-RecreateSwapchain(const Context &context,
-                  const Queue &queue,
-                  Swapchain &swapchain,
+                     Error>
+RecreateSwapchain(const Context& context,
+                  const Queue& queue,
+                  Swapchain& swapchain,
                   const Int2 dimensions)
 {
     vkDeviceWaitIdle(context.Device);
     if (dimensions != swapchain.Dimensions)
     {
-        for (const auto &image: swapchain.Images)
+        for (const auto& image : swapchain.Images)
         {
             vkDestroyImageView(context.Device, image.ImageView, nullptr);
         }
@@ -397,7 +408,7 @@ RecreateSwapchain(const Context &context,
         vkDestroySwapchainKHR(context.Device, swapchain.SwapChain, nullptr);
 
         const auto swapchainResult =
-                CreateSwapchain(context, queue, dimensions);
+            CreateSwapchain(context, queue, dimensions);
 
         if (!swapchainResult)
         {
@@ -409,7 +420,7 @@ RecreateSwapchain(const Context &context,
 };
 
 inline std::expected<VkSemaphore,
-    Error>
+                     Error>
 CreateSemaphore(const VkDevice device)
 {
     constexpr VkSemaphoreCreateInfo semaphoreCreateInfo{
@@ -417,27 +428,26 @@ CreateSemaphore(const VkDevice device)
     };
     VkSemaphore semaphore;
     const auto result =
-            vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore);
+        vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore);
     return CheckResult(result, semaphore, Error::eSemaphoreCreateFailed);
 }
 
 inline std::expected<VkFence,
-    Error>
+                     Error>
 CreateFence(const VkDevice device,
             const bool signaled)
 {
     const VkFenceCreateInfo fenceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0u
-    };
+        .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0u};
     VkFence fence;
     const auto result =
-            vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
+        vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
     return CheckResult(result, fence, Error::eFenceCreateFailed);
 }
 
 inline std::expected<VkCommandPool,
-    Error>
+                     Error>
 CreateCommandPool(const VkDevice device,
                   const uint32_t queueFamilyIndex)
 {
@@ -455,7 +465,7 @@ CreateCommandPool(const VkDevice device,
 }
 
 inline std::expected<VkCommandBuffer,
-    Error>
+                     Error>
 CreateCommandBuffer(const VkDevice device,
                     const VkCommandPool commandPool)
 {
@@ -475,8 +485,9 @@ CreateCommandBuffer(const VkDevice device,
 }
 
 inline std::expected<Command,
-    Error>
-CreateCommand(const VkDevice device, const uint32_t queueFamilyIndex)
+                     Error>
+CreateCommand(const VkDevice device,
+              const uint32_t queueFamilyIndex)
 {
     const auto poolResult = CreateCommandPool(device, queueFamilyIndex);
     if (!poolResult.has_value())
@@ -492,7 +503,7 @@ CreateCommand(const VkDevice device, const uint32_t queueFamilyIndex)
 }
 
 inline std::expected<FrameData,
-    Error>
+                     Error>
 CreateFrameData(const VkDevice device)
 {
     FrameData frameData{};
@@ -529,7 +540,7 @@ CreateFrameData(const VkDevice device)
 }
 
 inline std::expected<VkDescriptorSetLayout,
-    Error>
+                     Error>
 CreateDescriptorSetLayout(const VkDevice device)
 {
     std::array bindings{
@@ -560,8 +571,8 @@ CreateDescriptorSetLayout(const VkDevice device)
     };
 
     constexpr VkDescriptorBindingFlags flags =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
     constexpr std::array bindingFlags{
         flags,
         flags,
@@ -570,7 +581,7 @@ CreateDescriptorSetLayout(const VkDevice device)
     };
     VkDescriptorSetLayoutBindingFlagsCreateInfo bindCreateInfo{
         .sType =
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
         .bindingCount = static_cast<uint32_t>(bindingFlags.size()),
         .pBindingFlags = bindingFlags.data(),
     };
@@ -593,7 +604,7 @@ CreateDescriptorSetLayout(const VkDevice device)
 }
 
 inline std::expected<VkDescriptorPool,
-    Error>
+                     Error>
 CreateDescriptorPool(const VkDevice device)
 {
     constexpr std::array poolSizes{
@@ -630,7 +641,7 @@ CreateDescriptorPool(const VkDevice device)
 };
 
 inline std::expected<VkDescriptorSet,
-    Error>
+                     Error>
 CreateDescriptorSet(const VkDevice device,
                     const VkDescriptorSetLayout setLayout,
                     const VkDescriptorPool descriptorPool)
@@ -649,7 +660,7 @@ CreateDescriptorSet(const VkDevice device,
 }
 
 inline std::expected<Descriptor,
-    Error>
+                     Error>
 CreateDescriptor(const VkDevice device)
 {
     Descriptor descriptor{};
@@ -668,7 +679,7 @@ CreateDescriptor(const VkDevice device)
     descriptor.Pool = poolResult.value();
 
     const auto descriptorSetResult =
-            CreateDescriptorSet(device, descriptor.Layout, descriptor.Pool);
+        CreateDescriptorSet(device, descriptor.Layout, descriptor.Pool);
     if (!descriptorSetResult)
     {
         return std::unexpected(descriptorSetResult.error());
@@ -679,8 +690,8 @@ CreateDescriptor(const VkDevice device)
 }
 
 inline std::expected<VkPipelineLayout,
-    Error>
-CreatePipelineLayout(const Context &context,
+                     Error>
+CreatePipelineLayout(const Context& context,
                      VkDescriptorSetLayout descriptorSetLayout)
 {
     constexpr VkPushConstantRange pushConstants{
@@ -706,16 +717,17 @@ CreatePipelineLayout(const Context &context,
 }
 
 inline std::expected<VkPipeline,
-    Error>
+                     Error>
 CreateGraphicsPipeline(
     const VkDevice device,
     const VkPipelineLayout pipelineLayout,
-    const std::vector<VkPipelineShaderStageCreateInfo> &shaderStages,
-    const GraphicsShaderCreateInfo &createInfo)
+    const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
+    const GraphicsShaderCreateInfo& createInfo)
 {
     VkPipelineRenderingCreateInfo renderCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-        .colorAttachmentCount = static_cast<uint32_t>(createInfo.ColorFormats.size()),
+        .colorAttachmentCount =
+            static_cast<uint32_t>(createInfo.ColorFormats.size()),
         .pColorAttachmentFormats = createInfo.ColorFormats.data(),
         .depthAttachmentFormat = createInfo.DepthFormat,
     };
@@ -723,11 +735,11 @@ CreateGraphicsPipeline(
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     };
     constexpr auto inputAssemblyCreateInfo =
-            VkPipelineInputAssemblyStateCreateInfo{
-                .sType =
+        VkPipelineInputAssemblyStateCreateInfo{
+            .sType =
                 VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            };
+            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        };
 
     constexpr auto viewport = VkViewport{
         .width = 1280.f,
@@ -744,55 +756,54 @@ CreateGraphicsPipeline(
         .pScissors = &scissor,
     };
     constexpr auto rasterizerCreateInfo =
-            VkPipelineRasterizationStateCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                .polygonMode = VK_POLYGON_MODE_FILL,
-                .cullMode = VK_CULL_MODE_BACK_BIT,
-                .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-                .lineWidth = 1.f,
-            };
+        VkPipelineRasterizationStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .polygonMode = VK_POLYGON_MODE_FILL,
+            .cullMode = VK_CULL_MODE_BACK_BIT,
+            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            .lineWidth = 1.f,
+        };
     const auto multisampleCreateInfo = VkPipelineMultisampleStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = createInfo.Samples,
     };
     constexpr auto depthStencilCreateInfo =
-            VkPipelineDepthStencilStateCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                .depthTestEnable = true,
-                .depthWriteEnable = true,
-                .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-            };
+        VkPipelineDepthStencilStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable = true,
+            .depthWriteEnable = true,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+        };
     constexpr auto colorBlendAttachmentState =
-            VkPipelineColorBlendAttachmentState{
-                .blendEnable = true,
-                .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-                .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                .colorBlendOp = VK_BLEND_OP_ADD,
-                .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-                .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-                .alphaBlendOp = VK_BLEND_OP_ADD,
-                .colorWriteMask =
+        VkPipelineColorBlendAttachmentState{
+            .blendEnable = true,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
+            .colorWriteMask =
                 VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-            };
-    std::vector colorBlendAttachments{createInfo.ColorFormats.size(), colorBlendAttachmentState};
+        };
+    std::vector colorBlendAttachments{createInfo.ColorFormats.size(),
+                                      colorBlendAttachmentState};
     const auto colorBlendStateCreateInfo = VkPipelineColorBlendStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size()),
         .pAttachments = colorBlendAttachments.data(),
     };
 
-    constexpr std::array dynamicStates{
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR,
-        VK_DYNAMIC_STATE_LINE_WIDTH,
-        VK_DYNAMIC_STATE_CULL_MODE,
-        VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE,
-        VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE,
-        VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,
-        VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
-        VK_DYNAMIC_STATE_FRONT_FACE
-    };
+    constexpr std::array dynamicStates{VK_DYNAMIC_STATE_VIEWPORT,
+                                       VK_DYNAMIC_STATE_SCISSOR,
+                                       VK_DYNAMIC_STATE_LINE_WIDTH,
+                                       VK_DYNAMIC_STATE_CULL_MODE,
+                                       VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE,
+                                       VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE,
+                                       VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,
+                                       VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
+                                       VK_DYNAMIC_STATE_FRONT_FACE};
 
     const auto dynamicStateCreateInfo = VkPipelineDynamicStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -826,9 +837,11 @@ CreateGraphicsPipeline(
     return CheckResult(result, pipeline, Error::ePipelineCreateFailed);
 }
 
-inline std::expected<VkPipeline, Error> CreateComputePipeline(const VkDevice device,
-                                                              const VkPipelineLayout pipelineLayout,
-                                                              const VkPipelineShaderStageCreateInfo &shaderStage)
+inline std::expected<VkPipeline,
+                     Error>
+CreateComputePipeline(const VkDevice device,
+                      const VkPipelineLayout pipelineLayout,
+                      const VkPipelineShaderStageCreateInfo& shaderStage)
 {
     const VkComputePipelineCreateInfo computePipelineCreateInfo{
         .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
@@ -836,44 +849,49 @@ inline std::expected<VkPipeline, Error> CreateComputePipeline(const VkDevice dev
         .layout = pipelineLayout,
     };
     VkPipeline pipeline;
-    const auto result = vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &pipeline);
+    const auto result = vkCreateComputePipelines(device,
+                                                 nullptr,
+                                                 1,
+                                                 &computePipelineCreateInfo,
+                                                 nullptr,
+                                                 &pipeline);
     return CheckResult(result, pipeline, Error::ePipelineCreateFailed);
 }
 
 inline std::expected<VkShaderModule,
-    Error>
+                     Error>
 CreateShaderModule(const VkDevice device,
-                   const std::vector<char> &code)
+                   const std::vector<char>& code)
 {
     const VkShaderModuleCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = code.size(),
-        .pCode = reinterpret_cast<const uint32_t *>(code.data()),
+        .pCode = reinterpret_cast<const uint32_t*>(code.data()),
     };
     VkShaderModule shaderModule;
     const auto result =
-            vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
+        vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
     return CheckResult(result, shaderModule, Error::eShaderCreateFailed);
 }
 
 inline std::expected<ShaderInfo,
-    Error>
+                     Error>
 CreateShader(const VkDevice device,
-             const std::vector<char> &code,
+             const std::vector<char>& code,
              const ShaderStage shaderStage)
 {
     VkShaderStageFlagBits stageFlags = {};
     switch (shaderStage)
     {
-        case ShaderStage::eVertex:
-            stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-            break;
-        case ShaderStage::eFragment:
-            stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            break;
-        case ShaderStage::eCompute:
-            stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-            break;
+    case ShaderStage::eVertex:
+        stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        break;
+    case ShaderStage::eFragment:
+        stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        break;
+    case ShaderStage::eCompute:
+        stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        break;
     }
     auto shaderResult = Vulkan::CreateShaderModule(device, code);
     if (!shaderResult)
@@ -894,7 +912,10 @@ CreateShader(const VkDevice device,
     return shader;
 }
 
-inline std::expected<VkSampler, Error> CreateSampler(const Context &context, const SamplerCreateInfo &createInfo)
+inline std::expected<VkSampler,
+                     Error>
+CreateSampler(const Context& context,
+              const SamplerCreateInfo& createInfo)
 {
     {
         VkPhysicalDeviceProperties properties;
@@ -907,24 +928,26 @@ inline std::expected<VkSampler, Error> CreateSampler(const Context &context, con
             .addressModeU = createInfo.AddressModeU,
             .addressModeV = createInfo.AddressModeV,
             .addressModeW = createInfo.AddressModeW,
+            .anisotropyEnable = true,
+            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
             .minLod = 0,
             .maxLod = 16,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = false,
-            .anisotropyEnable = true,
-            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+
         };
         VkSampler sampler;
-        const auto result = vkCreateSampler(context.Device, &samplerInfo, nullptr, &sampler);
+        const auto result =
+            vkCreateSampler(context.Device, &samplerInfo, nullptr, &sampler);
         return CheckResult(result, sampler, Error::eSamplerCreateFailed);
     }
 }
 
 inline std::expected<std::tuple<VkImage,
-        VmaAllocation>,
-    Error>
-CreateBaseImage(const Context &context,
-                const ImageCreateInfo &createInfo)
+                                VmaAllocation>,
+                     Error>
+CreateBaseImage(const Context& context,
+                const ImageCreateInfo& createInfo)
 {
     const VkImageCreateInfo imageCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -956,10 +979,10 @@ CreateBaseImage(const Context &context,
 }
 
 inline std::expected<VkImageView,
-    Error>
+                     Error>
 CreateImageView(const VkDevice device,
                 const VkImage image,
-                const ImageCreateInfo &createInfo)
+                const ImageCreateInfo& createInfo)
 {
     VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     const auto layers = createInfo.ArrayLayers;
@@ -983,11 +1006,14 @@ CreateImageView(const VkDevice device,
     };
     VkImageView imageView;
     const auto result =
-            vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageView);
+        vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageView);
     return CheckResult(result, imageView, Error::eImageCreateFailed);
 }
 
-inline std::expected<Image, Error> CreateImage(const Context &context, const ImageCreateInfo &createInfo)
+inline std::expected<Image,
+                     Error>
+CreateImage(const Context& context,
+            const ImageCreateInfo& createInfo)
 {
     Image image;
     const auto imageResult = CreateBaseImage(context, createInfo);
@@ -998,7 +1024,7 @@ inline std::expected<Image, Error> CreateImage(const Context &context, const Ima
     std::tie(image.BaseImage, image.Allocation) = imageResult.value();
 
     const auto imageViewResult =
-            CreateImageView(context.Device, image.BaseImage, createInfo);
+        CreateImageView(context.Device, image.BaseImage, createInfo);
     if (!imageViewResult)
     {
         return std::unexpected(imageViewResult.error());
@@ -1011,33 +1037,37 @@ inline std::expected<Image, Error> CreateImage(const Context &context, const Ima
     return image;
 }
 
-inline void DestroyImage(const Swift::Context &context, const Image &image)
+inline void DestroyImage(const Swift::Context& context,
+                         const Image& image)
 {
     vmaDestroyImage(context.Allocator, image.BaseImage, image.Allocation);
     vkDestroyImageView(context.Device, image.ImageView, nullptr);
 }
 
-inline std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &context,
-                                                        const BufferCreateInfo &createInfo)
+inline std::expected<Swift::Buffer,
+                     Error>
+CreateBuffer(const Swift::Context& context,
+             const BufferCreateInfo& createInfo)
 {
-    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
                                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     switch (createInfo.Usage)
     {
-        case BufferUsage::eUniform:
-            usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            break;
-        case BufferUsage::eStorage:
-            usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            break;
-        case BufferUsage::eIndex:
-            usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            break;
-        case BufferUsage::eIndirect:
-            usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
-            break;
-        default:
-            break;
+    case BufferUsage::eUniform:
+        usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        break;
+    case BufferUsage::eStorage:
+        usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        break;
+    case BufferUsage::eIndex:
+        usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        break;
+    case BufferUsage::eIndirect:
+        usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        break;
+    default:
+        break;
     }
     const VkBufferCreateInfo bufferCreateInfo{
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -1046,31 +1076,41 @@ inline std::expected<Swift::Buffer, Error> CreateBuffer(const Swift::Context &co
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
     constexpr VmaAllocationCreateInfo allocCreateInfo{
-        .flags =
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+                 VMA_ALLOCATION_CREATE_MAPPED_BIT,
         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
     };
     Buffer buffer;
-    const auto result = vmaCreateBuffer(context.Allocator, &bufferCreateInfo, &allocCreateInfo, &buffer.BaseBuffer,
-                                        &buffer.Allocation, &buffer.AllocationInfo);
+    const auto result = vmaCreateBuffer(context.Allocator,
+                                        &bufferCreateInfo,
+                                        &allocCreateInfo,
+                                        &buffer.BaseBuffer,
+                                        &buffer.Allocation,
+                                        &buffer.AllocationInfo);
     return CheckResult(result, buffer, Error::eBufferCreateFailed);
 }
 
-inline std::expected<void *, Error> MapBuffer(const Swift::Context &context, const Swift::Buffer &buffer)
+inline std::expected<void*,
+                     Error>
+MapBuffer(const Swift::Context& context,
+          const Swift::Buffer& buffer)
 {
-    void *data;
-    const auto result = vmaMapMemory(context.Allocator, buffer.Allocation, &data);
+    void* data;
+    const auto result =
+        vmaMapMemory(context.Allocator, buffer.Allocation, &data);
     return CheckResult(result, data, Error::eBufferMapFailed);
 }
 
-inline void UnmapBuffer(const Swift::Context &context, const Swift::Buffer &buffer)
+inline void UnmapBuffer(const Swift::Context& context,
+                        const Swift::Buffer& buffer)
 {
     vmaUnmapMemory(context.Allocator, buffer.Allocation);
 }
 
-inline void DestroyBuffer(const VmaAllocator& allocator, Buffer &buffer)
+inline void DestroyBuffer(const VmaAllocator& allocator,
+                          Buffer& buffer)
 {
     vmaDestroyBuffer(allocator, buffer.BaseBuffer, buffer.Allocation);
     buffer.Allocation = nullptr;

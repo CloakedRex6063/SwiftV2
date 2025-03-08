@@ -48,6 +48,6 @@ namespace Swift::Vulkan
 
     void CopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
                            VkImageLayout dstLayout, std::span<VkBufferImageCopy2> copyRegions);
+} // namespace Swift::Vulkan
 
 #include "VulkanUtil.inl"
-} // namespace Swift::Vulkan
