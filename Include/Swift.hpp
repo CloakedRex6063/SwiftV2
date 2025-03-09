@@ -1,8 +1,9 @@
 #pragma once
-#include "SwiftEnums.hpp"
-#include "SwiftStructs.hpp"
 #include "expected"
 #include "vector"
+#include "numeric"
+#include "SwiftEnums.hpp"
+#include "SwiftStructs.hpp"
 
 namespace Swift
 {
