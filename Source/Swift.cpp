@@ -227,14 +227,6 @@ Swift::BeginFrame(const DynamicInfo& info)
 
     Vulkan::BeginCommandBuffer(currentFrameData.Command);
 
-    vkCmdBindDescriptorSets(currentFrameData.Command.Buffer,
-                            VK_PIPELINE_BIND_POINT_COMPUTE,
-                            gPipelineLayout,
-                            0,
-                            1,
-                            &gDescriptor.Set,
-                            0,
-                            nullptr);
     return {};
 }
 
@@ -360,6 +352,24 @@ void Swift::BindShader(const ShaderHandle& shaderHandle)
     vkCmdBindPipeline(currentFrameData.Command.Buffer,
                       shader.BindPoint,
                       shader.Pipeline);
+    vkCmdBindDescriptorSets(currentFrameData.Command.Buffer,
+                        shader.BindPoint,
+                        gPipelineLayout,
+                        0,
+                        1,
+                        &gDescriptor.Set,
+                        0,
+                        nullptr);
+}
+
+void Swift::BindIndexBuffer(const BufferHandle bufferHandle)
+{
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    const auto& buffer = gBuffers.at(bufferHandle);
+    vkCmdBindIndexBuffer(currentFrameData.Command.Buffer,
+                         buffer.BaseBuffer,
+                         0,
+                         VK_INDEX_TYPE_UINT32);
 }
 
 void Swift::DispatchCompute(const uint32_t groupX,

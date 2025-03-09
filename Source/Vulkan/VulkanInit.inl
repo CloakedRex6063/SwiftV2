@@ -43,6 +43,7 @@ CreateSelector(vkb::Instance instance,
     VkPhysicalDeviceVulkan11Features deviceFeatures11 = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
         .multiview = true,
+        .shaderDrawParameters = true,
     };
 
     VkPhysicalDeviceVulkan12Features deviceFeatures12 = {
