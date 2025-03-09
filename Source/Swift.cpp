@@ -694,6 +694,7 @@ void Swift::EndTransfer()
                                 .Fence = gTransferFence};
     Vulkan::SubmitQueue(gTransferQueue, gTransferCommand, submitInfo);
     const auto result = Vulkan::WaitFence(gContext.Device, gTransferFence);
+    Vulkan::ResetFence(gContext.Device, gTransferFence);
 }
 
 Int2 Swift::GetImageSize(const ImageHandle imageHandle)
