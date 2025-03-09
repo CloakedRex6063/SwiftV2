@@ -5,18 +5,9 @@
 #include "VulkanUtil.hpp"
 #include "ranges"
 
-#ifdef SWIFT_IMGUI
-#include "imgui.h"
-#define IMGUI_IMPL_VULKAN_USE_VOLK
-#include "imgui_impl_vulkan.h"
-#endif
-
 #ifdef SWIFT_GLFW
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
-#ifdef SWIFT_IMGUI
-#include "imgui_impl_glfw.h"
-#endif
 #endif
 
 namespace Swift::Vulkan
@@ -28,10 +19,6 @@ namespace Swift::Vulkan
     vkb::Result<vkb::Instance> CreateInstance(const InitInfo &info);
 
     std::expected<Context, Error> CreateContext(const InitInfo &info);
-
-#ifdef SWIFT_IMGUI
-    std::expected<void, Error> CreateImGUI(const Context &context, const Queue graphicsQueue, const InitInfo &info);
-#endif
 
     std::expected<Queue, Error> CreateQueue(const Context &context, vkb::QueueType queueType);
 

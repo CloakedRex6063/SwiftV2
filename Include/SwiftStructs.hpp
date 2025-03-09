@@ -100,6 +100,27 @@ namespace Swift
     using BufferHandle = uint32_t;
     inline uint32_t InvalidHandle = std::numeric_limits<uint32_t>::max();
 
+    struct Command
+    {
+        VkCommandPool Pool;
+        VkCommandBuffer Buffer;
+    };
+
+    struct Queue
+    {
+        VkQueue BaseQueue;
+        uint32_t QueueIndex;
+    };
+
+    struct Context
+    {
+        vkb::Instance Instance;
+        vkb::Device Device;
+        vkb::PhysicalDevice GPU;
+        VmaAllocator Allocator{};
+        VkSurfaceKHR Surface{};
+    };
+
     struct GraphicsShaderCreateInfo
     {
         std::vector<char> VertexCode;

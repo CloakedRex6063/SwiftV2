@@ -128,32 +128,11 @@ namespace Swift
         uint32_t CurrentImageIndex;
     };
 
-    struct Command
-    {
-        VkCommandPool Pool;
-        VkCommandBuffer Buffer;
-    };
-
-    struct Queue
-    {
-        VkQueue BaseQueue;
-        uint32_t QueueIndex;
-    };
-
     struct FrameData
     {
         Command Command;
         VkSemaphore ImageAvailable;
         VkSemaphore RenderFinished;
         VkFence Fence;
-    };
-
-    struct Context
-    {
-        vkb::Instance Instance;
-        vkb::Device Device;
-        vkb::PhysicalDevice GPU;
-        VmaAllocator Allocator{};
-        VkSurfaceKHR Surface{};
     };
 }

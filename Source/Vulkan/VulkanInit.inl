@@ -168,55 +168,6 @@ CreateContext(const InitInfo& info)
     return context;
 }
 
-#ifdef SWIFT_IMGUI
-inline std::expected<void,
-                     Error>
-CreateImGUI(const Swift::Context& context,
-            const Queue graphicsQueue,
-            const InitInfo& info)
-{
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    auto format = VK_FORMAT_B8G8R8A8_UNORM;
-    ImGui_ImplVulkan_InitInfo vulkanInitInfo{
-        .Instance = context.Instance,
-        .PhysicalDevice = context.GPU,
-        .Device = context.Device,
-        .QueueFamily = graphicsQueue.QueueIndex,
-        .Queue = graphicsQueue.BaseQueue,
-        .MinImageCount = 3,
-        .ImageCount = 3,
-        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
-        .DescriptorPoolSize = 1000,
-        .UseDynamicRendering = true,
-        .PipelineRenderingCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &format,
-            .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
-        }};
-
-    if (!ImGui_ImplVulkan_Init(&vulkanInitInfo))
-    {
-        return std::unexpected(Error::eFailedToInitImGUI);
-    }
-
-    if (std::holds_alternative<GLFWwindow*>(info.Window))
-    {
-        if (!ImGui_ImplGlfw_InitForVulkan(std::get<GLFWwindow*>(info.Window),
-                                          true))
-        {
-            return std::unexpected(Error::eFailedToInitImGUI);
-        }
-    }
-
-    return {};
-}
-#endif
-
 inline std::expected<Queue,
                      Error>
 CreateQueue(const Context& context,

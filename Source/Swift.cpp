@@ -117,29 +117,12 @@ Swift::Init(const InitInfo& info)
     }
     gSamplers.emplace_back(samplerResult.value());
 
-#ifdef SWIFT_IMGUI
-    if (const auto imguiResult =
-            Vulkan::CreateImGUI(gContext, gGraphicsQueue, info);
-        !imguiResult)
-    {
-        return std::unexpected(imguiResult.error());
-    }
-#endif
-
     return {};
 }
 
 void Swift::Shutdown()
 {
     vkDeviceWaitIdle(gContext.Device);
-
-#ifdef SWIFT_IMGUI
-    ImGui_ImplVulkan_Shutdown();
-#ifdef SWIFT_GLFW
-    ImGui_ImplGlfw_Shutdown();
-#endif
-    ImGui::DestroyContext();
-#endif
 
     for (const auto& sampler : gSamplers)
     {
@@ -252,12 +235,6 @@ Swift::BeginFrame(const DynamicInfo& info)
                             &gDescriptor.Set,
                             0,
                             nullptr);
-
-#ifdef SWIFT_IMGUI
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-#endif
     return {};
 }
 
@@ -269,42 +246,6 @@ Swift::EndFrame(const DynamicInfo& info)
         gFrameData.at(gCurrentFrame);
 
     auto& image = Vulkan::GetSwapchainImage(gSwapchain);
-    auto& depthImage = gSwapchain.DepthImage;
-
-#ifdef SWIFT_IMGUI
-    const auto colorTransition =
-        Vulkan::TransitionImage(image,
-                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    const auto depthTransition =
-        Vulkan::TransitionImage(depthImage,
-                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                VK_IMAGE_ASPECT_DEPTH_BIT);
-    Vulkan::PipelineBarrier(Command.Buffer, {colorTransition, depthTransition});
-
-    const VkRenderingAttachmentInfo colorInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = image.ImageView,
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-    };
-
-    const VkRenderingAttachmentInfo depthInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = depthImage.ImageView,
-        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-    };
-
-    Vulkan::BeginRendering(Command, {colorInfo}, depthInfo, info.Extent);
-    ImGui::Render();
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Command.Buffer);
-
-    Vulkan::EndRendering(Command);
-
-    ImGui::EndFrame();
-#endif
 
     const auto presentTransition =
         Vulkan::TransitionImage(image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -968,4 +909,26 @@ void Swift::CopyBufferToImage(const BufferHandle srcBuffer,
         Vulkan::TransitionImage(image,
                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     Vulkan::PipelineBarrier(gTransferCommand.Buffer, {shaderReadTransition});
+}
+
+Context Swift::GetContext()
+{
+    return gContext;
+}
+
+Queue Swift::GetGraphicsQueue()
+{
+    return gGraphicsQueue;
+}
+
+Queue Swift::GetTransferQueue() { return gTransferQueue; }
+
+Command Swift::GetGraphicsCommand()
+{
+    return gFrameData.at(gCurrentFrame).Command;
+}
+
+Command Swift::GetTransferCommand()
+{
+    return gTransferCommand;
 }

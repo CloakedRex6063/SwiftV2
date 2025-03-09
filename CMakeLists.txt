@@ -28,9 +28,6 @@ target_compile_definitions(Swift PRIVATE
 if(SWIFT_GLFW)
     target_compile_definitions(Swift PRIVATE SWIFT_GLFW)
 endif()
-if (SWIFT_IMGUI)
-    target_compile_definitions(Swift PRIVATE SWIFT_IMGUI)
-endif()
 
 
 

@@ -9,7 +9,6 @@ namespace Swift
     std::expected<void,
         Error>
     Init(const InitInfo &info);
-
     void Shutdown();
 
     // Render Operations
@@ -133,4 +132,10 @@ namespace Swift
 
     void TransitionImage(ImageHandle imageHandle, VkImageLayout newLayout);
     void CopyBufferToImage(BufferHandle srcBuffer, ImageHandle dstImageHandle, const std::vector<BufferImageCopy> &copyRegions);
+
+    Context GetContext();
+    Queue GetGraphicsQueue();
+    Queue GetTransferQueue();
+    Command GetGraphicsCommand();
+    Command GetTransferCommand();
 } // namespace Swift
