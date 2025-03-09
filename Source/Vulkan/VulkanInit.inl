@@ -686,7 +686,7 @@ CreateGraphicsPipeline(
     constexpr auto vertexInputCreateInfo = VkPipelineVertexInputStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     };
-    constexpr auto inputAssemblyCreateInfo =
+    const auto inputAssemblyCreateInfo =
         VkPipelineInputAssemblyStateCreateInfo{
             .sType =
                 VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
