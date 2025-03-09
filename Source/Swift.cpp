@@ -138,6 +138,7 @@ void Swift::Shutdown()
 
     for (auto& tempImage : gTempImages)
     {
+        if (!tempImage.BaseImage) continue;
         Vulkan::DestroyImage(gContext, tempImage);
     }
 
@@ -307,7 +308,9 @@ void Swift::BeginRendering()
 
 void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
                            const ImageHandle& depthAttachment,
-                           const Int2& dimensions)
+                           const Int2& dimensions,
+                           const bool loadColor,
+                           const bool loadDepth)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     auto& shader = gShaders.at(gCurrentShader);
@@ -318,6 +321,7 @@ void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
     {
         auto& realImage = gImages.at(colorAttachments.at(index));
         colorAttachment.imageView = realImage.ImageView;
+        colorAttachment.loadOp = loadColor ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
         imageBarriers.emplace_back(
             Vulkan::TransitionImage(realImage,
                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
@@ -326,6 +330,7 @@ void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
     {
         auto& depthImage = gImages.at(depthAttachment);
         shader.DepthAttachment.imageView = depthImage.ImageView;
+        shader.DepthAttachment.loadOp = loadDepth ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
         imageBarriers.emplace_back(
             Vulkan::TransitionImage(depthImage,
                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
@@ -598,6 +603,7 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = VkClearValue{0.f, 0.f, 0.f, 0.f}
     };
 
     constexpr VkRenderingAttachmentInfo depthInfo{
@@ -605,6 +611,7 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
         .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = VkClearValue{1.f, 1.f, 1.f, 1.f}
     };
 
     const std::vector colorAttachments{createInfo.ColorFormats.size(),
