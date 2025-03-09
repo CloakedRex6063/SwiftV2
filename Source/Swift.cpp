@@ -1,4 +1,5 @@
 #include "Swift.hpp"
+#include "numeric"
 #define VOLK_IMPLEMENTATION
 #include "Vulkan/VulkanInit.hpp"
 #include "Vulkan/VulkanRender.hpp"
