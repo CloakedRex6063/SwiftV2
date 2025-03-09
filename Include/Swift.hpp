@@ -16,6 +16,8 @@ namespace Swift
 
     std::expected<void, Error> EndFrame(const DynamicInfo &info);
 
+    void BeginRendering();
+
     void BeginRendering(const std::vector<ImageHandle> &colorAttachments,
                         const ImageHandle &depthAttachment,
                         const Int2 &dimensions);

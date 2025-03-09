@@ -277,6 +277,41 @@ Swift::EndFrame(const DynamicInfo& info)
     return {};
 }
 
+void Swift::BeginRendering()
+{
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    auto& swapchainImage = Vulkan::GetSwapchainImage(gSwapchain);
+    const auto renderTransition =
+        Vulkan::TransitionImage(swapchainImage,
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const auto depthTransition =
+        Vulkan::TransitionImage(swapchainImage,
+                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+    Vulkan::PipelineBarrier(currentFrameData.Command.Buffer,
+                            {renderTransition, depthTransition});
+
+    const VkRenderingAttachmentInfo colorInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = swapchainImage.ImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+    };
+
+    const VkRenderingAttachmentInfo depthInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = gSwapchain.DepthImage.ImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+    };
+
+    Vulkan::BeginRendering(currentFrameData.Command,
+                           {colorInfo},
+                           depthInfo,
+                           gSwapchain.Dimensions);
+}
+
 void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
                            const ImageHandle& depthAttachment,
                            const Int2& dimensions)
@@ -819,10 +854,7 @@ Swift::CreateSampler(const SamplerCreateInfo& createInfo)
     return static_cast<uint32_t>(gSamplers.size() - 1);
 }
 
-VkSampler Swift::GetDefaultSampler()
-{
-    return gSamplers[0];
-}
+VkSampler Swift::GetDefaultSampler() { return gSamplers[0]; }
 
 void Swift::ClearTempImages() { gTempImages.clear(); }
 
@@ -911,15 +943,9 @@ void Swift::CopyBufferToImage(const BufferHandle srcBuffer,
     Vulkan::PipelineBarrier(gTransferCommand.Buffer, {shaderReadTransition});
 }
 
-Context Swift::GetContext()
-{
-    return gContext;
-}
+Context Swift::GetContext() { return gContext; }
 
-Queue Swift::GetGraphicsQueue()
-{
-    return gGraphicsQueue;
-}
+Queue Swift::GetGraphicsQueue() { return gGraphicsQueue; }
 
 Queue Swift::GetTransferQueue() { return gTransferQueue; }
 
@@ -928,7 +954,4 @@ Command Swift::GetGraphicsCommand()
     return gFrameData.at(gCurrentFrame).Command;
 }
 
-Command Swift::GetTransferCommand()
-{
-    return gTransferCommand;
-}
+Command Swift::GetTransferCommand() { return gTransferCommand; }
