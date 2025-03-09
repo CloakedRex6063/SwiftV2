@@ -128,6 +128,7 @@ namespace Swift
         VkFormat DepthFormat;
         VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
         VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
+        VkPrimitiveTopology Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     };
 
     struct ComputeShaderCreateInfo
