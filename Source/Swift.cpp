@@ -131,11 +131,12 @@ void Swift::Shutdown()
 
     for (const auto& image : gImages)
     {
+        if (!image.Allocation) continue;
         vmaDestroyImage(gContext.Allocator, image.BaseImage, image.Allocation);
         vkDestroyImageView(gContext.Device, image.ImageView, nullptr);
     }
 
-    for (const auto& tempImage : gTempImages)
+    for (auto& tempImage : gTempImages)
     {
         Vulkan::DestroyImage(gContext, tempImage);
     }

@@ -993,11 +993,13 @@ CreateImage(const Context& context,
     return image;
 }
 
-inline void DestroyImage(const Swift::Context& context,
-                         const Image& image)
+inline void DestroyImage(const Swift::Context& context, Image& image)
 {
     vmaDestroyImage(context.Allocator, image.BaseImage, image.Allocation);
     vkDestroyImageView(context.Device, image.ImageView, nullptr);
+    image.BaseImage = nullptr;
+    image.ImageView = nullptr;
+    image.Allocation = nullptr;
 }
 
 inline std::expected<Swift::Buffer,

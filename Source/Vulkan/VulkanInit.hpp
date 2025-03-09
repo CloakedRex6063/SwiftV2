@@ -87,7 +87,7 @@ namespace Swift::Vulkan
     std::expected<Image, Error> CreateImage(const Context &context,
                                                    const ImageCreateInfo &createInfo);
 
-    void DestroyImage(const Context &context, const Image &image);
+    void DestroyImage(const Context &context, Image &image);
 
     std::expected<Buffer, Error> CreateBuffer(const Context &context, const BufferCreateInfo &createInfo);
 
