@@ -305,12 +305,7 @@ void Swift::BeginRendering()
                            depthInfo,
                            gSwapchain.Dimensions);
 }
-
-void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
-                           const ImageHandle& depthAttachment,
-                           const Int2& dimensions,
-                           const bool loadColor,
-                           const bool loadDepth)
+void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     auto& shader = gShaders.at(gCurrentShader);
@@ -319,18 +314,60 @@ void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
     for (const auto& [index, colorAttachment] :
          std::views::enumerate(shader.ColorAttachments))
     {
-        auto& realImage = gImages.at(colorAttachments.at(index));
+        VkAttachmentLoadOp colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        switch (renderInfo.ColorLoadOp)
+        {
+        case LoadOp::eLoad:
+            colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            break;
+        case LoadOp::eClear:
+            colorLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            break;
+        }
+        VkAttachmentStoreOp colorStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+        switch (renderInfo.ColorStoreOp)
+        {
+        case StoreOp::eStore:
+            colorStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+            break;
+        case StoreOp::eDontCare:
+            colorStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            break;
+        }
+        auto& realImage = gImages.at(renderInfo.ColorAttachments.at(index));
         colorAttachment.imageView = realImage.ImageView;
-        colorAttachment.loadOp = loadColor ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.loadOp = colorLoadOp;
+        colorAttachment.storeOp = colorStoreOp;
         imageBarriers.emplace_back(
             Vulkan::TransitionImage(realImage,
                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
     }
-    if (depthAttachment != InvalidHandle)
+    if (renderInfo.DepthAttachment != InvalidHandle)
     {
-        auto& depthImage = gImages.at(depthAttachment);
+        VkAttachmentLoadOp depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        switch (renderInfo.ColorLoadOp)
+        {
+        case LoadOp::eLoad:
+            depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            break;
+        case LoadOp::eClear:
+            depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            break;
+        }
+        VkAttachmentStoreOp depthStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+        switch (renderInfo.ColorStoreOp)
+        {
+        case StoreOp::eStore:
+            depthStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+            break;
+        case StoreOp::eDontCare:
+            depthStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            break;
+        }
+        auto& depthImage = gImages.at(renderInfo.DepthAttachment);
         shader.DepthAttachment.imageView = depthImage.ImageView;
-        shader.DepthAttachment.loadOp = loadDepth ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
+        shader.DepthAttachment.loadOp = depthLoadOp;
+        shader.DepthAttachment.storeOp = depthStoreOp;
         imageBarriers.emplace_back(
             Vulkan::TransitionImage(depthImage,
                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
@@ -341,7 +378,7 @@ void Swift::BeginRendering(const std::vector<ImageHandle>& colorAttachments,
     Vulkan::BeginRendering(currentFrameData.Command,
                            shader.ColorAttachments,
                            shader.DepthAttachment,
-                           dimensions);
+                           renderInfo.Dimensions);
 }
 
 void Swift::EndRendering()

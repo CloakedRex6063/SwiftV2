@@ -96,4 +96,16 @@ namespace Swift
         eCounterClockWise,
         eClockWise,
     };
+
+    enum class LoadOp
+    {
+        eLoad,
+        eClear,
+    };
+
+    enum class StoreOp
+    {
+        eStore,
+        eDontCare,
+    };
 } // namespace Swift

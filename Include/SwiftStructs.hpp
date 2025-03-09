@@ -1,10 +1,9 @@
 #pragma once
-#include "variant"
 #include "SwiftEnums.hpp"
+#include "variant"
 #define VK_NO_PROTOTYPES
 #include "VkBootstrap.h"
 #include "vk_mem_alloc.h"
-
 
 struct GLFWwindow;
 namespace Swift
@@ -14,7 +13,7 @@ namespace Swift
         int x;
         int y;
     };
-    
+
     struct Float2
     {
         float x;
@@ -28,7 +27,7 @@ namespace Swift
         float z;
         float w;
     };
-    
+
     struct InitInfo
     {
         std::string AppName;
@@ -135,7 +134,7 @@ namespace Swift
     {
         std::vector<char> ComputeCode;
     };
-    
+
     struct ImageCreateInfo
     {
         VkFormat Format{};
@@ -176,5 +175,17 @@ namespace Swift
         uint32_t MipLevel;
         uint32_t ArrayLayer;
         Int2 Extent;
+    };
+
+
+    struct BeginRenderInfo
+    {
+        const std::vector<ImageHandle>& ColorAttachments;
+        const ImageHandle& DepthAttachment;
+        const Int2& Dimensions;
+        const LoadOp ColorLoadOp = LoadOp::eClear;
+        const StoreOp ColorStoreOp = StoreOp::eStore;
+        const LoadOp DepthLoadOp = LoadOp::eClear;
+        const StoreOp DepthStoreOp = StoreOp::eStore;
     };
 } // namespace Swift

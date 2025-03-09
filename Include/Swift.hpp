@@ -22,11 +22,7 @@ namespace Swift
 
     void BeginRendering();
 
-    void BeginRendering(const std::vector<ImageHandle>& colorAttachments,
-                           const ImageHandle& depthAttachment,
-                           const Int2& dimensions,
-                           const bool loadColor = false,
-                           const bool loadDepth = false);
+    void BeginRendering(const BeginRenderInfo& renderInfo);
 
     void EndRendering();
 
