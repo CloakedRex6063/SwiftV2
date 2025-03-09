@@ -903,6 +903,9 @@ CreateBaseImage(const Context& context,
 {
     const VkImageCreateInfo imageCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .flags = createInfo.ArrayLayers == 6
+                     ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+                     : VkImageCreateFlags(),
         .imageType = VK_IMAGE_TYPE_2D,
         .format = createInfo.Format,
         .extent = VkExtent3D(createInfo.Extent.x, createInfo.Extent.y, 1),
@@ -949,7 +952,7 @@ CreateImageView(const VkDevice device,
     const VkImageViewCreateInfo imageViewCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .viewType = layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D,
         .format = createInfo.Format,
         .subresourceRange = GetImageSubresourceRange(aspectMask,
                                                      0,
