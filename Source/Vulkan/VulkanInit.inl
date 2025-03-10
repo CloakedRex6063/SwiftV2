@@ -207,9 +207,10 @@ CreateSwapchainImages(const Context& context,
                             &getCount,
                             baseImages.data());
 
-    for (const auto& [index, image] : std::views::enumerate(images))
+    for (int i = 0; i < images.size(); i++)
     {
-        image.BaseImage = baseImages[index];
+        auto& image = images[i];
+        image.BaseImage = baseImages[i];
         VkImageViewCreateInfo imageViewCreateInfo{
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image = image.BaseImage,

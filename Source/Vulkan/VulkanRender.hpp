@@ -187,13 +187,12 @@ namespace Swift::Vulkan
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         };
         std::vector colorAttachments(images.size(), colorInfo);
-        for (const auto &[index, imageHandle]:
-             std::views::enumerate(imageHandles))
+        for (int i = 0; i < imageHandles.size(); i++)
         {
-            if (imageHandle != InvalidHandle)
+            if (imageHandles[i] != InvalidHandle)
             {
-                const auto &image = images[imageHandle];
-                colorAttachments[index].imageView = image.ImageView;
+                const auto &image = images[i];
+                colorAttachments[i].imageView = image.ImageView;
             }
         }
         return colorAttachments;

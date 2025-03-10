@@ -1,6 +1,5 @@
 #include "Swift.hpp"
 #include "numeric"
-#include "ranges"
 #define VOLK_IMPLEMENTATION
 #include "Vulkan/VulkanInit.hpp"
 #include "Vulkan/VulkanRender.hpp"
@@ -313,8 +312,7 @@ void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
     auto& shader = gShaders.at(gCurrentShader);
 
     std::vector<VkImageMemoryBarrier2> imageBarriers;
-    for (const auto& [index, colorAttachment] :
-         std::views::enumerate(shader.ColorAttachments))
+    for (int i =0; i < shader.ColorAttachments.size(); i++)
     {
         VkAttachmentLoadOp colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         switch (renderInfo.ColorLoadOp)
@@ -336,7 +334,8 @@ void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
             colorStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             break;
         }
-        auto& realImage = gImages.at(renderInfo.ColorAttachments.at(index));
+        auto& realImage = gImages.at(renderInfo.ColorAttachments.at(i));
+        auto& colorAttachment = shader.ColorAttachments[i];
         colorAttachment.imageView = realImage.ImageView;
         colorAttachment.loadOp = colorLoadOp;
         colorAttachment.storeOp = colorStoreOp;
