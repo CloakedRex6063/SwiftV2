@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 project(SwiftV2)
 
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 include(FetchContent)
 
