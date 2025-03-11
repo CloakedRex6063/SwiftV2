@@ -181,12 +181,12 @@ namespace Swift
 
     struct BeginRenderInfo
     {
-        const std::vector<ImageHandle>& ColorAttachments;
-        const ImageHandle& DepthAttachment;
-        const Int2& Dimensions;
-        const LoadOp ColorLoadOp = LoadOp::eClear;
-        const StoreOp ColorStoreOp = StoreOp::eStore;
-        const LoadOp DepthLoadOp = LoadOp::eClear;
-        const StoreOp DepthStoreOp = StoreOp::eStore;
+        std::vector<ImageHandle> ColorAttachments;
+        ImageHandle DepthAttachment;
+        Int2 Dimensions;
+        LoadOp ColorLoadOp = LoadOp::eClear;
+        StoreOp ColorStoreOp = StoreOp::eStore;
+        LoadOp DepthLoadOp = LoadOp::eClear;
+        StoreOp DepthStoreOp = StoreOp::eStore;
     };
 } // namespace Swift

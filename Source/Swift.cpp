@@ -346,7 +346,7 @@ void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
     if (renderInfo.DepthAttachment != InvalidHandle)
     {
         VkAttachmentLoadOp depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        switch (renderInfo.ColorLoadOp)
+        switch (renderInfo.DepthLoadOp)
         {
         case LoadOp::eLoad:
             depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -356,7 +356,7 @@ void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
             break;
         }
         VkAttachmentStoreOp depthStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        switch (renderInfo.ColorStoreOp)
+        switch (renderInfo.DepthStoreOp)
         {
         case StoreOp::eStore:
             depthStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
