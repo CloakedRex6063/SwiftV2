@@ -958,11 +958,12 @@ Swift::UpdateImage(const ImageHandle baseImageHandle,
 void Swift::WaitIdle() { vkDeviceWaitIdle(gContext.Device); }
 
 void Swift::TransitionImage(const ImageHandle imageHandle,
-                            const VkImageLayout newLayout)
+                            const VkImageLayout newLayout,
+                            const VkImageAspectFlags aspectMask)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     auto& image = gImages.at(imageHandle);
-    const auto transition = Vulkan::TransitionImage(image, newLayout);
+    const auto transition = Vulkan::TransitionImage(image, newLayout, aspectMask);
     Vulkan::PipelineBarrier(currentFrameData.Command.Buffer, {transition});
 }
 

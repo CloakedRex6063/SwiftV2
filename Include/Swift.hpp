@@ -163,7 +163,8 @@ namespace Swift
     void WaitIdle();
 
     void TransitionImage(ImageHandle imageHandle,
-                         VkImageLayout newLayout);
+                         VkImageLayout newLayout,
+                         VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
     void CopyBufferToImage(BufferHandle srcBuffer,
                            ImageHandle dstImageHandle,
                            const std::vector<BufferImageCopy>& copyRegions);
