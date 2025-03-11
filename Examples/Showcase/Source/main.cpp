@@ -17,10 +17,9 @@ int main()
             .SetEngineName("Swift")
             .SetPreferredDeviceType(Swift::DeviceType::eDiscrete)
             .SetExtent({1280, 720})
-            .SetWindow(window)
-            .SetEnableMonitorLayer(true);
+            .SetWindow(window);
 #ifndef NDEBUG
-    initInfo.SetEnableDebugMessenger(true).SetEnableValidationLayer(true);
+    //initInfo.SetEnableDebugMessenger(true).SetEnableValidationLayer(true).SetEnableMonitorLayer(true);
 #endif
 
     if (!Swift::Init(initInfo)) return -1;

@@ -121,7 +121,7 @@ namespace Swift
     
     struct Swapchain
     {
-        VkSwapchainKHR SwapChain;
+        vkb::Swapchain SwapChain;
         Int2 Dimensions;
         std::vector<Image> Images;
         Image DepthImage;

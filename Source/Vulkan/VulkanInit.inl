@@ -193,45 +193,6 @@ CreateQueue(const Context& context,
     return queue;
 }
 
-inline std::expected<std::vector<Image>,
-                     Error>
-CreateSwapchainImages(const Context& context,
-                      const VkSwapchainKHR swapchain,
-                      const uint32_t imageCount)
-{
-    std::vector<Image> images(imageCount);
-    std::vector<VkImage> baseImages(imageCount);
-    uint32_t getCount = imageCount;
-    vkGetSwapchainImagesKHR(context.Device,
-                            swapchain,
-                            &getCount,
-                            baseImages.data());
-
-    for (int i = 0; i < images.size(); i++)
-    {
-        auto& image = images[i];
-        image.BaseImage = baseImages[i];
-        VkImageViewCreateInfo imageViewCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = image.BaseImage,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = VK_FORMAT_B8G8R8A8_UNORM,
-            .subresourceRange =
-                GetImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT),
-        };
-        const auto result = vkCreateImageView(context.Device,
-                                              &imageViewCreateInfo,
-                                              nullptr,
-                                              &image.ImageView);
-        if (result != VK_SUCCESS)
-        {
-            return std::unexpected(Error::eSwapchainCreateFailed);
-        }
-    }
-
-    return images;
-}
-
 inline std::expected<Swapchain,
                      Error>
 CreateSwapchain(const Context& context,
@@ -242,76 +203,24 @@ CreateSwapchain(const Context& context,
         .format = VK_FORMAT_B8G8R8A8_UNORM,
         .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
-    VkSurfaceCapabilitiesKHR surfaceCapabilities{};
-    auto result =
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context.GPU,
-                                                  context.Surface,
-                                                  &surfaceCapabilities);
-    if (result != VK_SUCCESS)
+    vkb::SwapchainBuilder swapchainBuilder(context.Device, context.Surface);
+    const auto swapchainResult =
+        swapchainBuilder.set_desired_format(surfaceFormat)
+            .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
+            .set_desired_extent(dimensions.x, dimensions.y)
+            .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+            .build();
+    auto swapchain = swapchainResult.value();
+    auto imageViews = swapchain.get_image_views().value();
+    auto images = swapchain.get_images().value();
+
+    Swapchain newSwapchain;
+    newSwapchain.SwapChain = swapchain;
+    newSwapchain.Images.resize(images.size());
+    for (int i = 0; i < swapchain.image_count; ++i)
     {
-        return std::unexpected(Error::eSwapchainCreateFailed);
-    }
-    constexpr auto preferredPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    uint32_t count = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU,
-                                              context.Surface,
-                                              &count,
-                                              nullptr);
-
-    std::vector<VkPresentModeKHR> presentModes(count);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(context.GPU,
-                                              context.Surface,
-                                              &count,
-                                              presentModes.data());
-
-    VkPresentModeKHR currentPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-
-    const auto it =
-        std::ranges::find_if(presentModes,
-                             [&](VkPresentModeKHR presentMode)
-                             { return presentMode == currentPresentMode; });
-
-    VkPresentModeKHR presentMode = preferredPresentMode;
-    if (it == presentModes.end())
-    {
-        presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    }
-
-    constexpr uint32_t imageCount = 2;
-    const VkSwapchainCreateInfoKHR swapchainInfo{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = context.Surface,
-        .minImageCount = imageCount,
-        .imageFormat = VK_FORMAT_B8G8R8A8_UNORM,
-        .imageColorSpace = surfaceFormat.colorSpace,
-        .imageExtent = VkExtent2D(dimensions.x, dimensions.y),
-        .imageArrayLayers = 1,
-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                      VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &queue.QueueIndex,
-        .preTransform = surfaceCapabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = presentMode,
-        .clipped = true,
-    };
-    VkSwapchainKHR swapchain;
-    result = vkCreateSwapchainKHR(context.Device,
-                                  &swapchainInfo,
-                                  nullptr,
-                                  &swapchain);
-    if (result != VK_SUCCESS)
-    {
-        return std::unexpected(Error::eSwapchainCreateFailed);
-    }
-
-    const auto imageResult =
-        CreateSwapchainImages(context, swapchain, imageCount);
-
-    if (!imageResult)
-    {
-        return std::unexpected(Error::eSwapchainCreateFailed);
+        newSwapchain.Images[i].BaseImage = images[i];
+        newSwapchain.Images[i].ImageView = imageViews[i];
     }
 
     Swift::ImageCreateInfo depthImageInfo = {
@@ -330,13 +239,8 @@ CreateSwapchain(const Context& context,
         return std::unexpected(Error::eSwapchainCreateFailed);
     }
 
-    Swapchain newSwapchain{
-        .SwapChain = swapchain,
-        .Dimensions = dimensions,
-        .Images = imageResult.value(),
-        .DepthImage = depthImageResult.value(),
-        .CurrentImageIndex = 0,
-    };
+    newSwapchain.Dimensions = {dimensions.x, dimensions.y};
+    newSwapchain.DepthImage = depthImageResult.value();
 
     return newSwapchain;
 }
@@ -358,7 +262,7 @@ RecreateSwapchain(const Context& context,
 
         Vulkan::DestroyImage(context, swapchain.DepthImage);
 
-        vkDestroySwapchainKHR(context.Device, swapchain.SwapChain, nullptr);
+        vkb::destroy_swapchain(swapchain.SwapChain);
 
         const auto swapchainResult =
             CreateSwapchain(context, queue, dimensions);
@@ -687,12 +591,10 @@ CreateGraphicsPipeline(
     constexpr auto vertexInputCreateInfo = VkPipelineVertexInputStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     };
-    const auto inputAssemblyCreateInfo =
-        VkPipelineInputAssemblyStateCreateInfo{
-            .sType =
-                VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            .topology = createInfo.Topology,
-        };
+    const auto inputAssemblyCreateInfo = VkPipelineInputAssemblyStateCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = createInfo.Topology,
+    };
 
     constexpr auto viewport = VkViewport{
         .width = 1280.f,
@@ -708,14 +610,13 @@ CreateGraphicsPipeline(
         .scissorCount = 1,
         .pScissors = &scissor,
     };
-    const auto rasterizerCreateInfo =
-        VkPipelineRasterizationStateCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            .polygonMode = createInfo.PolygonMode,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
-            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            .lineWidth = 1.f,
-        };
+    const auto rasterizerCreateInfo = VkPipelineRasterizationStateCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .polygonMode = createInfo.PolygonMode,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .lineWidth = 1.f,
+    };
     const auto multisampleCreateInfo = VkPipelineMultisampleStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = createInfo.Samples,
@@ -953,7 +854,8 @@ CreateImageView(const VkDevice device,
     const VkImageViewCreateInfo imageViewCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
-        .viewType = layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D,
+        .viewType =
+            layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D,
         .format = createInfo.Format,
         .subresourceRange = GetImageSubresourceRange(aspectMask,
                                                      0,
@@ -994,7 +896,8 @@ CreateImage(const Context& context,
     return image;
 }
 
-inline void DestroyImage(const Swift::Context& context, Image& image)
+inline void DestroyImage(const Swift::Context& context,
+                         Image& image)
 {
     vmaDestroyImage(context.Allocator, image.BaseImage, image.Allocation);
     vkDestroyImageView(context.Device, image.ImageView, nullptr);
@@ -1039,7 +942,8 @@ CreateBuffer(const Swift::Context& context,
                  VMA_ALLOCATION_CREATE_MAPPED_BIT,
         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
     };
     Buffer buffer;
     const auto result = vmaCreateBuffer(context.Allocator,

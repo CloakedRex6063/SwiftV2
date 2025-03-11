@@ -22,10 +22,6 @@ namespace Swift::Vulkan
 
     std::expected<Queue, Error> CreateQueue(const Context &context, vkb::QueueType queueType);
 
-    std::expected<std::vector<Image>, Error> CreateSwapchainImages(const Context &context,
-                                                                   VkSwapchainKHR swapchain,
-                                                                   uint32_t imageCount);
-
     std::expected<Swapchain, Error> CreateSwapchain(const Context &context,
                                                     const Queue &queue,
                                                     const Int2 &dimensions);

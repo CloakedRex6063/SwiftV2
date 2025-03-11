@@ -14,7 +14,7 @@ namespace
     Context gContext;
     Swapchain gSwapchain;
 
-    std::array<FrameData, 2> gFrameData;
+    std::array<FrameData, 3> gFrameData;
     uint32_t gCurrentFrame = 0;
 
     Queue gGraphicsQueue;
