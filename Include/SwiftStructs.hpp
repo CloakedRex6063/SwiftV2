@@ -38,6 +38,11 @@ namespace Swift
         bool EnableDebugMessenger = false;
         bool EnableValidationLayer = false;
         bool EnableMonitorLayer = false;
+        int AdditionalGraphicsQueueCount = 0;
+        int AdditionalComputeQueueCount = 0;
+        int AdditionalOpticalFlowQueueCount = 0;
+        VkPhysicalDeviceVulkan12Features AdditionalFeatures12{};
+        VkPhysicalDeviceVulkan13Features AdditionalFeatures13{};
 
         auto& SetAppName(const std::string& name)
         {
@@ -77,6 +82,31 @@ namespace Swift
         auto& SetEnableMonitorLayer(const bool enableMonitorLayer)
         {
             EnableMonitorLayer = enableMonitorLayer;
+            return *this;
+        }
+        auto& SetAdditionalGraphicsQueueCount(const int additionalGraphicsQueueCount)
+        {
+            AdditionalGraphicsQueueCount = additionalGraphicsQueueCount;
+            return *this;
+        }
+        auto& SetAdditionalComputeQueueCount(const int additionalComputeQueueCount)
+        {
+            AdditionalComputeQueueCount = additionalComputeQueueCount;
+            return *this;
+        }
+        auto& SetAdditionalOpticalFlowQueueCount(const int additionalOpticalFlowQueueCount)
+        {
+            AdditionalOpticalFlowQueueCount = additionalOpticalFlowQueueCount;
+            return *this;
+        }
+        auto& SetAdditionalFeatures12(const VkPhysicalDeviceVulkan12Features& additionalFeatures12)
+        {
+            AdditionalFeatures12 = additionalFeatures12;
+            return *this;
+        }
+        auto& SetAdditionalFeatures13(const VkPhysicalDeviceVulkan13Features& additionalFeatures13)
+        {
+            AdditionalFeatures13 = additionalFeatures13;
             return *this;
         }
     };

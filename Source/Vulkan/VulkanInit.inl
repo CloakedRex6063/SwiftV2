@@ -27,7 +27,8 @@ inline vkb::Result<vkb::Instance> CreateInstance(const InitInfo& info)
 }
 
 inline vkb::Result<vkb::PhysicalDevice>
-CreateSelector(vkb::Instance instance,
+CreateSelector(Swift::InitInfo initInfo,
+               vkb::Instance instance,
                VkSurfaceKHR surface,
                DeviceType preferredDeviceType)
 {
@@ -46,32 +47,84 @@ CreateSelector(vkb::Instance instance,
         .shaderDrawParameters = true,
     };
 
+    auto& addFeatures = initInfo.AdditionalFeatures12;
+
     VkPhysicalDeviceVulkan12Features deviceFeatures12 = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .samplerMirrorClampToEdge = addFeatures.samplerMirrorClampToEdge,
         .drawIndirectCount = true,
+        .storageBuffer8BitAccess = addFeatures.storageBuffer8BitAccess,
+        .uniformAndStorageBuffer8BitAccess =
+            addFeatures.uniformAndStorageBuffer8BitAccess,
+        .storagePushConstant8 = addFeatures.storagePushConstant8,
+        .shaderBufferInt64Atomics = addFeatures.shaderBufferInt64Atomics,
+        .shaderSharedInt64Atomics = addFeatures.shaderSharedInt64Atomics,
+        .shaderFloat16 = true,
+        .shaderInt8 = addFeatures.shaderInt8,
         .descriptorIndexing = true,
         .shaderInputAttachmentArrayDynamicIndexing = true,
+        .shaderUniformTexelBufferArrayDynamicIndexing = true,
+        .shaderStorageTexelBufferArrayDynamicIndexing = true,
         .shaderUniformBufferArrayNonUniformIndexing = true,
         .shaderSampledImageArrayNonUniformIndexing = true,
         .shaderStorageBufferArrayNonUniformIndexing = true,
         .shaderStorageImageArrayNonUniformIndexing = true,
         .shaderInputAttachmentArrayNonUniformIndexing = true,
+        .shaderUniformTexelBufferArrayNonUniformIndexing = true,
+        .shaderStorageTexelBufferArrayNonUniformIndexing = true,
         .descriptorBindingUniformBufferUpdateAfterBind = true,
         .descriptorBindingSampledImageUpdateAfterBind = true,
         .descriptorBindingStorageImageUpdateAfterBind = true,
         .descriptorBindingStorageBufferUpdateAfterBind = true,
+        .descriptorBindingUniformTexelBufferUpdateAfterBind = true,
+        .descriptorBindingStorageTexelBufferUpdateAfterBind = true,
         .descriptorBindingUpdateUnusedWhilePending = true,
         .descriptorBindingPartiallyBound = true,
         .descriptorBindingVariableDescriptorCount = true,
         .runtimeDescriptorArray = true,
+        .samplerFilterMinmax = addFeatures.samplerFilterMinmax,
+        .scalarBlockLayout = addFeatures.scalarBlockLayout,
+        .imagelessFramebuffer = addFeatures.imagelessFramebuffer,
+        .uniformBufferStandardLayout = addFeatures.uniformBufferStandardLayout,
+        .shaderSubgroupExtendedTypes = addFeatures.shaderSubgroupExtendedTypes,
+        .separateDepthStencilLayouts = addFeatures.separateDepthStencilLayouts,
+        .hostQueryReset = addFeatures.hostQueryReset,
         .timelineSemaphore = true,
         .bufferDeviceAddress = true,
+        .bufferDeviceAddressCaptureReplay =
+            addFeatures.bufferDeviceAddressCaptureReplay,
+        .bufferDeviceAddressMultiDevice =
+            addFeatures.bufferDeviceAddressMultiDevice,
+        .vulkanMemoryModel = addFeatures.vulkanMemoryModel,
+        .vulkanMemoryModelDeviceScope =
+            addFeatures.vulkanMemoryModelDeviceScope,
+        .vulkanMemoryModelAvailabilityVisibilityChains =
+            addFeatures.vulkanMemoryModelAvailabilityVisibilityChains,
+        .shaderOutputViewportIndex = addFeatures.shaderOutputViewportIndex,
+        .shaderOutputLayer = addFeatures.shaderOutputLayer,
+        .subgroupBroadcastDynamicId = addFeatures.subgroupBroadcastDynamicId,
     };
+
+    auto& add13 = initInfo.AdditionalFeatures13;
 
     VkPhysicalDeviceVulkan13Features deviceFeatures13 = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .robustImageAccess = add13.robustImageAccess,
+        .inlineUniformBlock = add13.inlineUniformBlock,
+        .descriptorBindingInlineUniformBlockUpdateAfterBind =
+            add13.descriptorBindingInlineUniformBlockUpdateAfterBind,
+        .pipelineCreationCacheControl = add13.pipelineCreationCacheControl,
+        .privateData = add13.privateData,
+        .shaderDemoteToHelperInvocation = add13.shaderDemoteToHelperInvocation,
+        .shaderTerminateInvocation = add13.shaderTerminateInvocation,
+        .subgroupSizeControl = add13.subgroupSizeControl,
+        .computeFullSubgroups = add13.computeFullSubgroups,
         .synchronization2 = true,
+        .textureCompressionASTC_HDR = add13.textureCompressionASTC_HDR,
+        .shaderZeroInitializeWorkgroupMemory =
+            add13.shaderZeroInitializeWorkgroupMemory,
         .dynamicRendering = true,
+        .shaderIntegerDotProduct = add13.shaderIntegerDotProduct,
         .maintenance4 = true,
     };
 
@@ -130,7 +183,8 @@ CreateContext(const InitInfo& info)
     }
 #endif
     context.Surface = surface;
-    const auto gpuSelector = Vulkan::CreateSelector(context.Instance,
+    const auto gpuSelector = Vulkan::CreateSelector(info,
+                                                    context.Instance,
                                                     surface,
                                                     info.PreferredDeviceType);
     if (!gpuSelector.has_value())
