@@ -840,7 +840,7 @@ CreateSampler(const Context& context,
             .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
             .minLod = 0,
             .maxLod = 16,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .borderColor = createInfo.BorderColor,
             .unnormalizedCoordinates = false,
 
         };

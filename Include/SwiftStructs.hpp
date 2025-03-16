@@ -185,6 +185,7 @@ namespace Swift
         VkSamplerAddressMode AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         VkSamplerAddressMode AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         VkSamplerAddressMode AddressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkBorderColor BorderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     };
 
     struct BufferCreateInfo
