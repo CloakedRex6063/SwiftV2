@@ -69,8 +69,9 @@ namespace Swift
         PushConstant(&pushConstant, sizeof(pushConstant));
     }
 
-  void SetViewportAndScissor(const Int2& extent);
-    void SetViewportAndScissor(const std::vector<Int2>& extents);
+    void SetViewportAndScissor(const Int2& extent);
+    void SetViewportAndScissor(const ViewportInfo& info);
+    void SetViewportAndScissor(const std::vector<ViewportInfo>& infos);
 
     void SetCullMode(CullMode cullMode);
 
@@ -162,9 +163,10 @@ namespace Swift
     // Misc
     void WaitIdle();
 
-    void TransitionImage(ImageHandle imageHandle,
-                         VkImageLayout newLayout,
-                         VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void
+    TransitionImage(ImageHandle imageHandle,
+                    VkImageLayout newLayout,
+                    VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
     void CopyBufferToImage(BufferHandle srcBuffer,
                            ImageHandle dstImageHandle,
                            const std::vector<BufferImageCopy>& copyRegions);

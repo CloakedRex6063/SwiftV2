@@ -312,7 +312,7 @@ void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
     auto& shader = gShaders.at(gCurrentShader);
 
     std::vector<VkImageMemoryBarrier2> imageBarriers;
-    for (int i =0; i < shader.ColorAttachments.size(); i++)
+    for (int i = 0; i < shader.ColorAttachments.size(); i++)
     {
         VkAttachmentLoadOp colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         switch (renderInfo.ColorLoadOp)
@@ -397,13 +397,13 @@ void Swift::BindShader(const ShaderHandle& shaderHandle)
                       shader.BindPoint,
                       shader.Pipeline);
     vkCmdBindDescriptorSets(currentFrameData.Command.Buffer,
-                        shader.BindPoint,
-                        gPipelineLayout,
-                        0,
-                        1,
-                        &gDescriptor.Set,
-                        0,
-                        nullptr);
+                            shader.BindPoint,
+                            gPipelineLayout,
+                            0,
+                            1,
+                            &gDescriptor.Set,
+                            0,
+                            nullptr);
 }
 
 void Swift::BindIndexBuffer(const BufferHandle bufferHandle)
@@ -533,30 +533,64 @@ void Swift::SetViewportAndScissor(const Int2& extent)
     scissor.offset = {0, 0};
     scissor.extent.width = static_cast<uint32_t>(extent.x);
     scissor.extent.height = static_cast<uint32_t>(extent.y);
-    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer, gViewports.size(), gViewports.data());
-    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer, gScissors.size(), gScissors.data());
+    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
+                              gViewports.size(),
+                              gViewports.data());
+    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
+                             gScissors.size(),
+                             gScissors.data());
 }
-
-void Swift::SetViewportAndScissor(const std::vector<Int2>& extents)
+void Swift::SetViewportAndScissor(const ViewportInfo& info)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     gViewports.clear();
     gScissors.clear();
-    for (const auto& extent : extents)
+    auto& viewport = gViewports.emplace_back();
+    viewport.width = static_cast<float>(info.Extent.x);
+    viewport.height = static_cast<float>(info.Extent.y);
+    viewport.x = static_cast<float>(info.Offset.x);
+    viewport.y = static_cast<float>(info.Offset.y);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    auto& scissor = gScissors.emplace_back();
+    scissor.offset = {0, 0};
+    scissor.extent.width = static_cast<uint32_t>(info.Extent.x);
+    scissor.extent.height = static_cast<uint32_t>(info.Extent.y);
+    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
+                              gViewports.size(),
+                              gViewports.data());
+    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
+                             gScissors.size(),
+                             gScissors.data());
+}
+
+void Swift::SetViewportAndScissor(const std::vector<ViewportInfo>& infos)
+{
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    gViewports.clear();
+    gScissors.clear();
+    for (const auto& info : infos)
     {
         auto& viewport = gViewports.emplace_back();
-        viewport.width = static_cast<float>(extent.x);
-        viewport.height = static_cast<float>(extent.y);
+        viewport.width = static_cast<float>(info.Extent.x);
+        viewport.height = static_cast<float>(info.Extent.y);
+        viewport.x = info.Extent.x;
+        viewport.y = info.Extent.y;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         auto& scissor = gScissors.emplace_back();
-        scissor.offset = {0, 0};
-        scissor.extent.width = static_cast<uint32_t>(extent.x);
-        scissor.extent.height = static_cast<uint32_t>(extent.y);
+        scissor.offset = {info.Offset.x, info.Offset.y};
+        scissor.extent.width = static_cast<uint32_t>(info.Extent.x);
+        scissor.extent.height = static_cast<uint32_t>(info.Extent.y);
     }
-    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer, gViewports.size(), gViewports.data());
-    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer, gScissors.size(), gScissors.data());
+    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
+                              gViewports.size(),
+                              gViewports.data());
+    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
+                             gScissors.size(),
+                             gScissors.data());
 }
 
 void Swift::SetCullMode(CullMode cullMode)
@@ -667,16 +701,14 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = VkClearValue{0.f, 0.f, 0.f, 0.f}
-    };
+        .clearValue = VkClearValue{0.f, 0.f, 0.f, 0.f}};
 
     constexpr VkRenderingAttachmentInfo depthInfo{
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = VkClearValue{1.f, 1.f, 1.f, 1.f}
-    };
+        .clearValue = VkClearValue{1.f, 1.f, 1.f, 1.f}};
 
     const std::vector colorAttachments{createInfo.ColorFormats.size(),
                                        colorInfo};
@@ -989,7 +1021,8 @@ void Swift::TransitionImage(const ImageHandle imageHandle,
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     auto& image = gImages.at(imageHandle);
-    const auto transition = Vulkan::TransitionImage(image, newLayout, aspectMask);
+    const auto transition =
+        Vulkan::TransitionImage(image, newLayout, aspectMask);
     Vulkan::PipelineBarrier(currentFrameData.Command.Buffer, {transition});
 }
 

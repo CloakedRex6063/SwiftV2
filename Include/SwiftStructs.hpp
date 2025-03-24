@@ -220,4 +220,10 @@ namespace Swift
         LoadOp DepthLoadOp = LoadOp::eClear;
         StoreOp DepthStoreOp = StoreOp::eStore;
     };
+
+    struct ViewportInfo
+    {
+        Swift::Int2 Extent;
+        Swift::Int2 Offset;
+    };
 } // namespace Swift
