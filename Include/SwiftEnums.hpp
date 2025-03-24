@@ -41,6 +41,7 @@ namespace Swift
     enum class ShaderStage
     {
         eVertex,
+        eGeometry,
         eFragment,
         eCompute
     };

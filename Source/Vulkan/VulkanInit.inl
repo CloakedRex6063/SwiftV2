@@ -1,4 +1,5 @@
 #pragma once
+#include "SwiftEnums.hpp"
 
 inline vkb::Result<vkb::Instance> CreateInstance(const InitInfo& info)
 {
@@ -37,6 +38,7 @@ CreateSelector(Swift::InitInfo initInfo,
         .fillModeNonSolid = true,
         .depthBounds = true,
         .wideLines = true,
+        .multiViewport = true,
         .samplerAnisotropy = true,
         .textureCompressionBC = true,
     };
@@ -786,6 +788,9 @@ CreateShader(const VkDevice device,
     {
     case ShaderStage::eVertex:
         stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        break;
+    case ShaderStage::eGeometry:
+        stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
         break;
     case ShaderStage::eFragment:
         stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;

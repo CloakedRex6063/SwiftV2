@@ -672,6 +672,23 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
     }
     const auto [vertShaderModule, vertShaderStage] = vertexShaderResult.value();
 
+    VkShaderModule geomShaderModule = nullptr;
+    VkPipelineShaderStageCreateInfo geomShaderStage;
+    if (!createInfo.GeometryCode.empty())
+    {
+        auto geomShaderResult =
+            Vulkan::CreateShader(gContext.Device,
+                                 createInfo.GeometryCode,
+                                 ShaderStage::eGeometry);
+        if (!geomShaderResult)
+        {
+            return std::unexpected(geomShaderResult.error());
+        }
+        const auto [geomModule, geomStage] = geomShaderResult.value();
+        geomShaderModule = geomModule;
+        geomShaderStage = geomStage;
+    }
+
     const auto fragmentShaderResult =
         Vulkan::CreateShader(gContext.Device,
                              createInfo.FragmentCode,
@@ -683,10 +700,22 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
     const auto [fragShaderModule, fragShaderStage] =
         fragmentShaderResult.value();
 
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+    if (geomShaderModule)
+    {
+        shaderStages.emplace_back(vertShaderStage);
+        shaderStages.emplace_back(geomShaderStage);
+        shaderStages.emplace_back(fragShaderStage);
+    }
+    else
+    {
+        shaderStages.emplace_back(vertShaderStage);
+        shaderStages.emplace_back(fragShaderStage);
+    }
     const auto pipelineResult =
         Vulkan::CreateGraphicsPipeline(gContext.Device,
                                        gPipelineLayout,
-                                       {vertShaderStage, fragShaderStage},
+                                       shaderStages,
                                        createInfo);
     if (!pipelineResult)
     {
@@ -695,6 +724,10 @@ Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
 
     vkDestroyShaderModule(gContext.Device, vertShaderModule, nullptr);
     vkDestroyShaderModule(gContext.Device, fragShaderModule, nullptr);
+    if (geomShaderModule)
+    {
+        vkDestroyShaderModule(gContext.Device, geomShaderModule, nullptr);
+    }
 
     constexpr VkRenderingAttachmentInfo colorInfo{
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,

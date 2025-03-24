@@ -153,6 +153,7 @@ namespace Swift
     struct GraphicsShaderCreateInfo
     {
         std::vector<char> VertexCode;
+        std::vector<char> GeometryCode;
         std::vector<char> FragmentCode;
         std::vector<VkFormat> ColorFormats;
         VkFormat DepthFormat;
@@ -223,7 +224,7 @@ namespace Swift
 
     struct ViewportInfo
     {
-        Swift::Int2 Extent;
-        Swift::Int2 Offset;
+        Int2 Extent;
+        Int2 Offset;
     };
 } // namespace Swift
