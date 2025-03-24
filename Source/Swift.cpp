@@ -575,8 +575,8 @@ void Swift::SetViewportAndScissor(const std::vector<ViewportInfo>& infos)
         auto& viewport = gViewports.emplace_back();
         viewport.width = static_cast<float>(info.Extent.x);
         viewport.height = static_cast<float>(info.Extent.y);
-        viewport.x = info.Extent.x;
-        viewport.y = info.Extent.y;
+        viewport.x = info.Offset.x;
+        viewport.y = info.Offset.y;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
