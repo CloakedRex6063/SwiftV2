@@ -554,7 +554,7 @@ void Swift::SetViewportAndScissor(const ViewportInfo& info)
     viewport.maxDepth = 1.0f;
 
     auto& scissor = gScissors.emplace_back();
-    scissor.offset = {0, 0};
+    scissor.offset = {info.Offset.x, info.Offset.y};
     scissor.extent.width = static_cast<uint32_t>(info.Extent.x);
     scissor.extent.height = static_cast<uint32_t>(info.Extent.y);
     vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
