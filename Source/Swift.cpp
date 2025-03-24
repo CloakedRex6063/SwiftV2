@@ -30,8 +30,8 @@ namespace
     std::vector<Image> gTempImages;
     std::vector<Buffer> gBuffers;
     std::vector<VkSampler> gSamplers;
-    VkViewport gViewport;
-    VkRect2D gScissor;
+    std::vector<VkViewport> gViewports;
+    std::vector<VkRect2D> gScissors;
 } // namespace
 
 std::expected<void,
@@ -518,19 +518,45 @@ void Swift::PushConstant(const void* data,
                        data);
 }
 
-void Swift::SetViewportAndScissor(const Int2 extent)
+void Swift::SetViewportAndScissor(const Int2& extent)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
-    gViewport.width = static_cast<float>(extent.x);
-    gViewport.height = static_cast<float>(extent.y);
-    gViewport.minDepth = 0.0f;
-    gViewport.maxDepth = 1.0f;
-    vkCmdSetViewport(currentFrameData.Command.Buffer, 0, 1, &gViewport);
+    gViewports.clear();
+    gScissors.clear();
+    auto& viewport = gViewports.emplace_back();
+    viewport.width = static_cast<float>(extent.x);
+    viewport.height = static_cast<float>(extent.y);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
 
-    gScissor.offset = {0, 0};
-    gScissor.extent.width = static_cast<uint32_t>(extent.x);
-    gScissor.extent.height = static_cast<uint32_t>(extent.y);
-    vkCmdSetScissor(currentFrameData.Command.Buffer, 0, 1, &gScissor);
+    auto& scissor = gScissors.emplace_back();
+    scissor.offset = {0, 0};
+    scissor.extent.width = static_cast<uint32_t>(extent.x);
+    scissor.extent.height = static_cast<uint32_t>(extent.y);
+    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer, gViewports.size(), gViewports.data());
+    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer, gScissors.size(), gScissors.data());
+}
+
+void Swift::SetViewportAndScissor(const std::vector<Int2>& extents)
+{
+    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
+    gViewports.clear();
+    gScissors.clear();
+    for (const auto& extent : extents)
+    {
+        auto& viewport = gViewports.emplace_back();
+        viewport.width = static_cast<float>(extent.x);
+        viewport.height = static_cast<float>(extent.y);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        auto& scissor = gScissors.emplace_back();
+        scissor.offset = {0, 0};
+        scissor.extent.width = static_cast<uint32_t>(extent.x);
+        scissor.extent.height = static_cast<uint32_t>(extent.y);
+    }
+    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer, gViewports.size(), gViewports.data());
+    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer, gScissors.size(), gScissors.data());
 }
 
 void Swift::SetCullMode(CullMode cullMode)

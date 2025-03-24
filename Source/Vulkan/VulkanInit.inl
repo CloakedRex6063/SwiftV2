@@ -650,19 +650,12 @@ CreateGraphicsPipeline(
         .topology = createInfo.Topology,
     };
 
-    constexpr auto viewport = VkViewport{
-        .width = 1280.f,
-        .height = 720.f,
-        .minDepth = 0.f,
-        .maxDepth = 1.f,
-    };
-    constexpr auto scissor = VkRect2D{.offset = {0, 0}, .extent = {1280, 720}};
-    const auto viewportCreateInfo = VkPipelineViewportStateCreateInfo{
+    constexpr auto viewportCreateInfo = VkPipelineViewportStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .viewportCount = 1,
-        .pViewports = &viewport,
-        .scissorCount = 1,
-        .pScissors = &scissor,
+        .viewportCount = 0,
+        .pViewports = nullptr,
+        .scissorCount = 0,
+        .pScissors = nullptr,
     };
     const auto rasterizerCreateInfo = VkPipelineRasterizationStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -703,8 +696,8 @@ CreateGraphicsPipeline(
         .pAttachments = colorBlendAttachments.data(),
     };
 
-    constexpr std::array dynamicStates{VK_DYNAMIC_STATE_VIEWPORT,
-                                       VK_DYNAMIC_STATE_SCISSOR,
+    constexpr std::array dynamicStates{VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT,
+                                       VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT,
                                        VK_DYNAMIC_STATE_LINE_WIDTH,
                                        VK_DYNAMIC_STATE_CULL_MODE,
                                        VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE,

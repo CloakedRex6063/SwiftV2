@@ -19,7 +19,7 @@ int main()
             .SetExtent({1280, 720})
             .SetWindow(window);
 #ifndef NDEBUG
-    //initInfo.SetEnableDebugMessenger(true).SetEnableValidationLayer(true).SetEnableMonitorLayer(true);
+    initInfo.SetEnableDebugMessenger(true).SetEnableValidationLayer(true).SetEnableMonitorLayer(true);
 #endif
 
     if (!Swift::Init(initInfo)) return -1;
@@ -56,7 +56,7 @@ int main()
 
         Swift::BindShader(shader);
 
-        Swift::SetViewportAndScissor(Swift::Int2(width, height));
+        Swift::SetViewportAndScissor({Swift::Int2(width, height)});
         Swift::SetCullMode(Swift::CullMode::eFront);
         Swift::SetDepthCompareOp(Swift::DepthCompareOp::eLessOrEqual);
         Swift::SetDepthTest(true);

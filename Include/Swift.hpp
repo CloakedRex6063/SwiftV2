@@ -1,9 +1,8 @@
 #pragma once
-#include "expected"
-#include "vector"
-#include "numeric"
 #include "SwiftEnums.hpp"
 #include "SwiftStructs.hpp"
+#include "expected"
+#include "vector"
 
 namespace Swift
 {
@@ -70,7 +69,8 @@ namespace Swift
         PushConstant(&pushConstant, sizeof(pushConstant));
     }
 
-    void SetViewportAndScissor(Int2 extent);
+  void SetViewportAndScissor(const Int2& extent);
+    void SetViewportAndScissor(const std::vector<Int2>& extents);
 
     void SetCullMode(CullMode cullMode);
 
