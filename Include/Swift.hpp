@@ -61,12 +61,11 @@ namespace Swift
     void ClearImage(ImageHandle imageHandle,
                     Float4 color);
 
-    void PushConstant(const void* data,
-                      uint32_t size);
+    void PushConstant(const void* data, uint32_t size, uint32_t offset);
 
     template <typename T> void PushConstant(T pushConstant)
     {
-        PushConstant(&pushConstant, sizeof(pushConstant));
+        PushConstant(&pushConstant, sizeof(pushConstant), 0);
     }
 
     void SetViewportAndScissor(const Int2& extent);

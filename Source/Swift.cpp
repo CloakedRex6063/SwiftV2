@@ -507,13 +507,14 @@ void Swift::ClearImage(const ImageHandle imageHandle,
 }
 
 void Swift::PushConstant(const void* data,
-                         const uint32_t size)
+                         const uint32_t size,
+                         const uint32_t offset)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     vkCmdPushConstants(currentFrameData.Command.Buffer,
                        gPipelineLayout,
                        VK_SHADER_STAGE_ALL,
-                       0,
+                       offset,
                        size,
                        data);
 }
