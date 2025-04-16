@@ -56,7 +56,8 @@ int main()
 
         Swift::BindShader(shader);
 
-        Swift::SetViewportAndScissor({Swift::Int2(width, height)});
+        Swift::SetViewport({Swift::Int2(width, height)});
+        Swift::SetScissor({Swift::Int2(width, height)});
         Swift::SetCullMode(Swift::CullMode::eFront);
         Swift::SetDepthCompareOp(Swift::DepthCompareOp::eLessOrEqual);
         Swift::SetDepthTest(true);

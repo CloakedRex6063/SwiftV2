@@ -68,9 +68,8 @@ namespace Swift
         PushConstant(&pushConstant, sizeof(pushConstant), 0);
     }
 
-    void SetViewportAndScissor(const Int2& extent);
-    void SetViewportAndScissor(const ViewportInfo& info);
-    void SetViewportAndScissor(const std::vector<ViewportInfo>& infos);
+    void SetViewport(const ViewportInfo& viewportInfo);
+    void SetScissor(const ViewportInfo& viewportInfo);
 
     void SetCullMode(CullMode cullMode);
 

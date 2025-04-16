@@ -195,9 +195,9 @@ Swift::BeginFrame(const DynamicInfo& info)
     if (info.Extent != gSwapchain.Dimensions)
     {
         const auto swapchainResult = Vulkan::RecreateSwapchain(gContext,
-                                                               gGraphicsQueue,
-                                                               gSwapchain,
-                                                               info.Extent);
+            gGraphicsQueue,
+            gSwapchain,
+            info.Extent);
         if (!swapchainResult)
         {
             return std::unexpected(swapchainResult.error());
@@ -218,9 +218,9 @@ Swift::BeginFrame(const DynamicInfo& info)
     if (!acquireResult)
     {
         const auto swapchainResult = Vulkan::RecreateSwapchain(gContext,
-                                                               gGraphicsQueue,
-                                                               gSwapchain,
-                                                               info.Extent);
+            gGraphicsQueue,
+            gSwapchain,
+            info.Extent);
         if (!swapchainResult)
         {
             return std::unexpected(swapchainResult.error());
@@ -259,9 +259,9 @@ Swift::EndFrame(const DynamicInfo& info)
     if (!Vulkan::Present(gSwapchain, gGraphicsQueue, RenderFinished))
     {
         const auto swapchainResult = Vulkan::RecreateSwapchain(gContext,
-                                                               gGraphicsQueue,
-                                                               gSwapchain,
-                                                               info.Extent);
+            gGraphicsQueue,
+            gSwapchain,
+            info.Extent);
         if (!swapchainResult)
         {
             return std::unexpected(swapchainResult.error());
@@ -306,6 +306,7 @@ void Swift::BeginRendering()
                            depthInfo,
                            gSwapchain.Dimensions);
 }
+
 void Swift::BeginRendering(const BeginRenderInfo& renderInfo)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
@@ -519,76 +520,31 @@ void Swift::PushConstant(const void* data,
                        data);
 }
 
-void Swift::SetViewportAndScissor(const Int2& extent)
+void Swift::SetViewport(const ViewportInfo& viewportInfo)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
     gViewports.clear();
-    gScissors.clear();
-    auto& viewport = gViewports.emplace_back();
-    viewport.width = static_cast<float>(extent.x);
-    viewport.height = static_cast<float>(extent.y);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    auto& scissor = gScissors.emplace_back();
-    scissor.offset = {0, 0};
-    scissor.extent.width = static_cast<uint32_t>(extent.x);
-    scissor.extent.height = static_cast<uint32_t>(extent.y);
+    auto& [x, y, width, height, minDepth, maxDepth] = gViewports.emplace_back();
+    width = static_cast<float>(viewportInfo.Extent.x);
+    height = static_cast<float>(viewportInfo.Extent.y);
+    x = static_cast<float>(viewportInfo.Offset.x);
+    y = static_cast<float>(viewportInfo.Offset.y);
+    minDepth = 0.0f;
+    maxDepth = 1.0f;
     vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
                               gViewports.size(),
                               gViewports.data());
-    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
-                             gScissors.size(),
-                             gScissors.data());
-}
-void Swift::SetViewportAndScissor(const ViewportInfo& info)
-{
-    const auto& currentFrameData = gFrameData.at(gCurrentFrame);
-    gViewports.clear();
-    gScissors.clear();
-    auto& viewport = gViewports.emplace_back();
-    viewport.width = static_cast<float>(info.Extent.x);
-    viewport.height = static_cast<float>(info.Extent.y);
-    viewport.x = static_cast<float>(info.Offset.x);
-    viewport.y = static_cast<float>(info.Offset.y);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    auto& scissor = gScissors.emplace_back();
-    scissor.offset = {info.Offset.x, info.Offset.y};
-    scissor.extent.width = static_cast<uint32_t>(info.Extent.x);
-    scissor.extent.height = static_cast<uint32_t>(info.Extent.y);
-    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
-                              gViewports.size(),
-                              gViewports.data());
-    vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
-                             gScissors.size(),
-                             gScissors.data());
 }
 
-void Swift::SetViewportAndScissor(const std::vector<ViewportInfo>& infos)
+void Swift::SetScissor(const ViewportInfo& viewportInfo)
 {
     const auto& currentFrameData = gFrameData.at(gCurrentFrame);
-    gViewports.clear();
     gScissors.clear();
-    for (const auto& info : infos)
-    {
-        auto& viewport = gViewports.emplace_back();
-        viewport.width = static_cast<float>(info.Extent.x);
-        viewport.height = static_cast<float>(info.Extent.y);
-        viewport.x = info.Offset.x;
-        viewport.y = info.Offset.y;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
 
-        auto& scissor = gScissors.emplace_back();
-        scissor.offset = {info.Offset.x, info.Offset.y};
-        scissor.extent.width = static_cast<uint32_t>(info.Extent.x);
-        scissor.extent.height = static_cast<uint32_t>(info.Extent.y);
-    }
-    vkCmdSetViewportWithCount(currentFrameData.Command.Buffer,
-                              gViewports.size(),
-                              gViewports.data());
+    auto& scissor = gScissors.emplace_back();
+    scissor.offset = {scissor.offset.x, scissor.offset.y};
+    scissor.extent.width = static_cast<uint32_t>(viewportInfo.Extent.x);
+    scissor.extent.height = static_cast<uint32_t>(viewportInfo.Extent.y);
     vkCmdSetScissorWithCount(currentFrameData.Command.Buffer,
                              gScissors.size(),
                              gScissors.data());
@@ -665,8 +621,8 @@ std::expected<ShaderHandle,
 Swift::CreateGraphicsShader(const GraphicsShaderCreateInfo& createInfo)
 {
     const auto vertexShaderResult = Vulkan::CreateShader(gContext.Device,
-                                                         createInfo.VertexCode,
-                                                         ShaderStage::eVertex);
+        createInfo.VertexCode,
+        ShaderStage::eVertex);
     if (!vertexShaderResult)
     {
         return std::unexpected(vertexShaderResult.error());
@@ -1073,9 +1029,9 @@ void Swift::CopyBufferToImage(const BufferHandle srcBuffer,
             .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
             .bufferOffset = BufferOffset,
             .imageSubresource =
-                Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT,
-                                                  MipLevel,
-                                                  ArrayLayer),
+            Vulkan::GetImageSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT,
+                                              MipLevel,
+                                              ArrayLayer),
             .imageExtent = VkExtent3D(Extent.x, Extent.y, 1),
         };
         vkCopyRegions.emplace_back(copy);
